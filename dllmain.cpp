@@ -1,7 +1,7 @@
 ﻿// dllmain.cpp : DLL 애플리케이션의 진입점을 정의합니다.
 #define WIN32_LEAN_AND_MEAN
-#include "FileStandardInformation.h"
-#include "FilePropertyInformation.h"
+#include "FileInformation.h"
+#include "FileVersionInformation.h"
 
 #include <fstream>
 #include <mutex>
@@ -47,18 +47,16 @@ BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
             << std::endl
             << __FUNCTION__"->" << ret << std::endl;
 
-    if (auto fileInfoOrEmpty = GetFileStandardInformation(hFile))
+    auto fileInfoOrEmpty = GetFileInformation(hFile);
+    auto fileInfo = fileInfoOrEmpty.value();
+    Log(fileInfo);
+    if (IsDll(fileInfo))
     {
-        auto fileInfo = fileInfoOrEmpty.value();
-        LogFileStandardInformation(fileInfo);
-        //if (IsDll(fileInfo))
-        //{
-        //    auto fileProp = GetFilePropertyInformation(ToWstring(fileInfo.fileName));
-        //    LogFilePropertyInformation(fileProp);
-        //}
+        auto fileProp = GetFileVersionInformation(fileInfo.fileName);
+        Log(fileProp);
     }
     else
-        logger << GetLastError() << std::endl;
+        logger << "error: " << GetLastError() << std::endl;
 
     if (logger.bad())
     {
@@ -70,8 +68,8 @@ BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
 }
 
 void WINAPI ProcessAttach(  HMODULE hModule,
-                            DWORD  ul_reason_for_call,
-                            LPVOID lpReserved)
+                            DWORD   ul_reason_for_call,
+                            LPVOID  lpReserved)
 {
     DetourRestoreAfterWith();
 
@@ -88,8 +86,8 @@ void WINAPI ProcessAttach(  HMODULE hModule,
 }
 
 void WINAPI ProcessDetach(  HMODULE hModule,
-                            DWORD  ul_reason_for_call,
-                            LPVOID lpReserved)
+                            DWORD   ul_reason_for_call,
+                            LPVOID  lpReserved)
 {
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
@@ -98,9 +96,9 @@ void WINAPI ProcessDetach(  HMODULE hModule,
 }
 
 
-BOOL APIENTRY DllMain( HMODULE hModule,
-                       DWORD  ul_reason_for_call,
-                       LPVOID lpReserved)
+BOOL APIENTRY DllMain( HMODULE  hModule,
+                       DWORD    ul_reason_for_call,
+                       LPVOID   lpReserved)
 {
     if (DetourIsHelperProcess())
         return TRUE;

@@ -161,13 +161,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="FilePropertyInformation.h" />
-    <ClInclude Include="FileStandardInformation.h" />
+    <ClInclude Include="FileVersionInformation.h" />
+    <ClInclude Include="FileInformation.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="FilePropertyInformation.cpp" />
-    <ClCompile Include="FileStandardInformation.cpp" />
+    <ClCompile Include="FileVersionInformation.cpp" />
+    <ClCompile Include="FileInformation.cpp" />
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="utilities.cpp" />
   </ItemGroup>

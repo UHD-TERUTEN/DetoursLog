@@ -1,5 +1,5 @@
 #define WIN32_LEAN_AND_MEAN
-#include "FileStandardInformation.h"
+#include "FileInformation.h"
 
 #include <Windows.h>
 #include <Shlwapi.h>    // SHFormatDateTimeA
@@ -35,7 +35,7 @@ std::string GetFormatDateTime(FILETIME fileTime)
 
 // https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getfileinformationbyhandleex
 // https://stackoverflow.com/questions/4296096/how-to-get-the-name-of-a-file-from-a-file-handle-in-windows-using-c
-std::optional<FileStandardInformation> GetFileStandardInformation(HANDLE hFile)
+std::optional<FileInformation> GetFileInformation(HANDLE hFile)
 {
     BY_HANDLE_FILE_INFORMATION info;
 
@@ -96,7 +96,7 @@ std::optional<FileStandardInformation> GetFileStandardInformation(HANDLE hFile)
 #ifdef DEBUGFLAG
     logger << 'ret' << std::endl;
 #endif
-    return FileStandardInformation{ a,b,c,d,e };
+    return FileInformation{ a,b,c,d,e };
 
     //return FileStandardInformation
     //{
@@ -108,7 +108,7 @@ std::optional<FileStandardInformation> GetFileStandardInformation(HANDLE hFile)
     //};
 }
 
-void LogFileStandardInformation(const FileStandardInformation& fileInfo)
+void Log(const FileInformation& fileInfo)
 {
     logger  << "파일 이름:\t"   << fileInfo.fileName         << std::endl
             << "크기:\t\t"     << fileInfo.fileSize         << std::endl

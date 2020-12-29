@@ -1,8 +1,8 @@
-#include "FileStandardInformation.h"
+#include "FileInformation.h"
 #include <string>
 
 inline
-bool IsDll(const FileStandardInformation& fileInfo)
+bool IsDll(const FileInformation& fileInfo)
 {
     return fileInfo.fileName.rfind(".dll") != std::string::npos
         || fileInfo.fileName.rfind(".DLL") != std::string::npos;

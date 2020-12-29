@@ -15,10 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="FileStandardInformation.h">
+    <ClInclude Include="FileInformation.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="FilePropertyInformation.h">
+    <ClInclude Include="FileVersionInformation.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
@@ -26,16 +26,16 @@
     <ClCompile Include="dllmain.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="FileStandardInformation.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="FilePropertyInformation.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="Logger.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="utilities.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="FileInformation.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="FileVersionInformation.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

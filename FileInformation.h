@@ -6,7 +6,7 @@
 #include <optional>
 #include <Windows.h>
 
-struct FileStandardInformation
+struct FileInformation
 {
     std::string fileName;
     long long   fileSize;
@@ -15,6 +15,6 @@ struct FileStandardInformation
     bool        isHidden;
 };
 
-std::optional<FileStandardInformation> GetFileStandardInformation(HANDLE hFile);
+std::optional<FileInformation> GetFileInformation(HANDLE hFile);
 
-void LogFileStandardInformation(const FileStandardInformation& fileInfo);
+void Log(const FileInformation& fileInfo);
