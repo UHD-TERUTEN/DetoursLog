@@ -50,12 +50,6 @@ BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
     auto fileInfo = GetFileInformation(hFile);
     Log(fileInfo);
 
-    //if (IsDll(fileInfo))
-    //{
-    //    auto versionInfo = GetFileVersionInformation(fileInfo.fileName);
-    //    Log(versionInfo);
-    //}
-
     if (logger.bad())
     {
         const std::lock_guard<std::mutex> reportLock(reportMutex);
