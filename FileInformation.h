@@ -3,7 +3,6 @@
 #include <wchar.h>
 
 #include <string>
-#include <optional>
 #include <Windows.h>
 
 struct FileInformation
@@ -15,6 +14,6 @@ struct FileInformation
     bool        isHidden;
 };
 
-std::optional<FileInformation> GetFileInformation(HANDLE hFile);
+FileInformation GetFileInformation(HANDLE hFile);
 
 void Log(const FileInformation& fileInfo);

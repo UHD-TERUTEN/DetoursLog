@@ -44,7 +44,7 @@ namespace FileVersionGetter
         if (langCodePage.empty())
             langCodePage = "041204b0"s;
 
-        std::stringstream ss;
+        std::stringstream ss{};
         ss << R"(\StringFileInfo\)"
             << langCodePage
             << key;
@@ -82,13 +82,6 @@ namespace FileVersionGetter
     inline static std::string GetProductVersion(const char* buffer)
     {
         return GetStringName(buffer, R"(\ProductVersion)");
-    }
-
-    static void SetStringFileInfo(FileVersionInformation& info, const char* buffer)
-    {
-        info.companyName = GetCompanyName(buffer);
-        info.fileDescription = GetFileDescription(buffer);
-        info.internalName = GetInternalName(buffer);
     }
 }
 using namespace FileVersionGetter;

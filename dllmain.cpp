@@ -17,6 +17,8 @@ static PReadFile TrueReadFile = ReadFile;
 extern std::ofstream logger;
 extern std::ofstream report;
 
+static std::mutex loggerMutex;
+static std::mutex reportMutex;
 
 __declspec(dllexport)
 BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
@@ -43,19 +45,11 @@ BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
             << std::endl
             << __FUNCTION__"->" << ret << std::endl;
 
-    if (auto fileInfoOrEmpty = GetFileInformation(hFile))
-    {
-        auto fileInfo = fileInfoOrEmpty.value();
-        Log(fileInfo);
+    auto fileInfo = GetFileInformation(hFile);
+    Log(fileInfo);
 
-        if (IsDll(fileInfo))
-        {
-            auto fileProp = GetFileVersionInformation(fileInfo.fileName);
-            Log(fileProp);
-        }
-    }
-    else
-        logger << "error: " << GetLastError() << std::endl;
+    auto versionInfo = GetFileVersionInformation(fileInfo.fileName);
+    Log(versionInfo);
 
     return ret;
 }

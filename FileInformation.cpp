@@ -13,14 +13,12 @@
 extern std::ofstream logger;
 extern std::ofstream report;
 
-static std::unordered_map<HANDLE, std::wstring> filePathCache;
-
 static
 std::string GetFormatDateTime(FILETIME fileTime)
 {
     // convert FILETIME to format date time
     DWORD pdwFlags = FDTF_DEFAULT;
-    char formatDateTime[BUFSIZ] = { 0 };
+    char formatDateTime[BUFSIZ]{};
 
     SHFormatDateTimeA(&fileTime, &pdwFlags, formatDateTime, sizeof(formatDateTime));
 
@@ -30,45 +28,27 @@ std::string GetFormatDateTime(FILETIME fileTime)
 
 // https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getfileinformationbyhandleex
 // https://stackoverflow.com/questions/4296096/how-to-get-the-name-of-a-file-from-a-file-handle-in-windows-using-c
-std::optional<FileInformation> GetFileInformation(HANDLE hFile)
+FileInformation GetFileInformation(HANDLE hFile)
 {
-    BY_HANDLE_FILE_INFORMATION info;
+    BY_HANDLE_FILE_INFORMATION handleFileInfo{};
+    FileInformation info{};
 
-    if (!GetFileInformationByHandle(hFile, &info))
+    if (GetFileInformationByHandle(hFile, &handleFileInfo))
     {
-        return {};
+        constexpr auto PATHLEN = BUFSIZ * 4;
+        TCHAR path[PATHLEN]{};
+
+        if (auto size = GetFinalPathNameByHandleW(hFile, path, PATHLEN, VOLUME_NAME_DOS);
+            0 < size && size < PATHLEN)
+        {
+            info.fileName = ToString(path + 4);   // remove prepended '\\?\'
+            info.fileSize = (long long(handleFileInfo.nFileSizeHigh) << 32) | handleFileInfo.nFileSizeLow;
+            info.creationTime = GetFormatDateTime(handleFileInfo.ftCreationTime);
+            info.lastWriteTime = GetFormatDateTime(handleFileInfo.ftLastWriteTime);
+            info.isHidden = static_cast<bool>(handleFileInfo.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN);
+        }
     }
-
-    std::wstring pathName;
-    if (filePathCache.find(hFile) == filePathCache.end())
-    {
-        constexpr size_t PATHLEN = BUFSIZ * 4;
-        TCHAR path[PATHLEN];
-
-        GetFinalPathNameByHandle(hFile, path, PATHLEN, VOLUME_NAME_DOS);
-
-        pathName = (filePathCache[hFile] = (path + 4));    // remove prepended '\\?\'
-    }
-    else
-    {
-        pathName = filePathCache[hFile];
-    }
-
-    auto a = ToString(pathName);
-    auto b = (long long(info.nFileSizeHigh) << 32) | info.nFileSizeLow;
-    auto c = GetFormatDateTime(info.ftCreationTime);
-    auto d = GetFormatDateTime(info.ftLastWriteTime);
-    auto e = static_cast<bool>(info.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN);
-    return FileInformation{ a,b,c,d,e };
-
-    //return FileStandardInformation
-    //{
-    //    ToString(pathName),
-    //    (long long(info.nFileSizeHigh) << 32) | info.nFileSizeLow,
-    //    GetFormatDateTime(info.ftCreationTime),
-    //    GetFormatDateTime(info.ftLastWriteTime),
-    //    static_cast<bool>(info.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN)
-    //};
+    return info;
 }
 
 void Log(const FileInformation& fileInfo)
