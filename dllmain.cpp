@@ -47,13 +47,16 @@ BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
             << std::endl
             << __FUNCTION__"->" << ret << std::endl;
 
-    auto fileInfoOrEmpty = GetFileInformation(hFile);
-    auto fileInfo = fileInfoOrEmpty.value();
-    Log(fileInfo);
-    if (IsDll(fileInfo))
+    if (auto fileInfoOrEmpty = GetFileInformation(hFile))
     {
-        auto fileProp = GetFileVersionInformation(fileInfo.fileName);
-        Log(fileProp);
+        auto fileInfo = fileInfoOrEmpty.value();
+        Log(fileInfo);
+
+        if (IsDll(fileInfo))
+        {
+            auto fileProp = GetFileVersionInformation(fileInfo.fileName);
+            Log(fileProp);
+        }
     }
     else
         logger << "error: " << GetLastError() << std::endl;
