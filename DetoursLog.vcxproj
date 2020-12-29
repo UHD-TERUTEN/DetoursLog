@@ -165,7 +165,9 @@
     <ClInclude Include="FileInformation.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="dllmain.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="FileVersionInformation.cpp" />
     <ClCompile Include="FileInformation.cpp" />
     <ClCompile Include="Logger.cpp" />

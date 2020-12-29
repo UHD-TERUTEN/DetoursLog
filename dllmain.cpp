@@ -59,10 +59,107 @@ BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
     return ret;
 }
 
+// from Detours sample (trcapi.cpp)
+//
+PIMAGE_NT_HEADERS NtHeadersForInstance(HINSTANCE hInst)
+{
+    PIMAGE_DOS_HEADER pDosHeader = (PIMAGE_DOS_HEADER)hInst;
+    __try {
+        if (pDosHeader->e_magic != IMAGE_DOS_SIGNATURE) {
+            SetLastError(ERROR_BAD_EXE_FORMAT);
+            return NULL;
+        }
+
+        PIMAGE_NT_HEADERS pNtHeader = (PIMAGE_NT_HEADERS)((PBYTE)pDosHeader +
+            pDosHeader->e_lfanew);
+        if (pNtHeader->Signature != IMAGE_NT_SIGNATURE) {
+            SetLastError(ERROR_INVALID_EXE_SIGNATURE);
+            return NULL;
+        }
+        if (pNtHeader->FileHeader.SizeOfOptionalHeader == 0) {
+            SetLastError(ERROR_EXE_MARKED_INVALID);
+            return NULL;
+        }
+        return pNtHeader;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER) {
+    }
+    SetLastError(ERROR_EXE_MARKED_INVALID);
+
+    return NULL;
+}
+
+BOOL ProcessEnumerate()
+{
+    report << "######################################################### Binaries\n";
+
+    PBYTE pbNext;
+    for (PBYTE pbRegion = (PBYTE)0x10000;; pbRegion = pbNext)
+    {
+        MEMORY_BASIC_INFORMATION mbi;
+        ZeroMemory(&mbi, sizeof(mbi));
+
+        if (VirtualQuery((PVOID)pbRegion, &mbi, sizeof(mbi)) <= 0) {
+            break;
+        }
+        pbNext = (PBYTE)mbi.BaseAddress + mbi.RegionSize;
+
+        // Skip free regions, reserver regions, and guard pages.
+        //
+        if (mbi.State == MEM_FREE || mbi.State == MEM_RESERVE) {
+            continue;
+        }
+        if (mbi.Protect & PAGE_GUARD || mbi.Protect & PAGE_NOCACHE) {
+            continue;
+        }
+        if (mbi.Protect == PAGE_NOACCESS) {
+            continue;
+        }
+
+        // Skip over regions from the same allocation...
+        {
+            MEMORY_BASIC_INFORMATION mbiStep;
+
+            while (VirtualQuery((PVOID)pbNext, &mbiStep, sizeof(mbiStep)) > 0)
+            {
+                if ((PBYTE)mbiStep.AllocationBase != pbRegion) {
+                    break;
+                }
+                pbNext = (PBYTE)mbiStep.BaseAddress + mbiStep.RegionSize;
+                mbi.Protect |= mbiStep.Protect;
+            }
+        }
+
+        WCHAR wzDllName[MAX_PATH];
+        PIMAGE_NT_HEADERS pinh = NtHeadersForInstance((HINSTANCE)pbRegion);
+
+        if (pinh && GetModuleFileNameW((HINSTANCE)pbRegion, wzDllName, ARRAYSIZE(wzDllName)))
+        {
+            std::wstring temp(wzDllName);
+            std::string name;
+            name.assign(std::begin(temp), std::end(temp));
+            report << "----------------------------------" << std::endl;
+            report << name << std::endl;
+            auto versionInfo = GetFileVersionInformation(name);
+            Log(versionInfo);
+            report << "----------------------------------" << std::endl;
+        }
+    }
+    report << std::endl;
+
+    return TRUE;
+}
+
 void WINAPI ProcessAttach(  HMODULE hModule,
                             DWORD   ul_reason_for_call,
                             LPVOID  lpReserved)
 {
+    logger.open(R"(D:\log.txt)", std::ios_base::app);
+    report.open(R"(D:\report.txt)", std::ios_base::app);
+    //out.open(R"(C:\Users\gggg8\Desktop\tmp\log.txt)", std::ios_base::app);
+
+    ProcessEnumerate();
+
     DetourRestoreAfterWith();
 
     DisableThreadLibraryCalls(hModule);
@@ -71,10 +168,6 @@ void WINAPI ProcessAttach(  HMODULE hModule,
     DetourUpdateThread(GetCurrentThread());
     DetourAttach(&(PVOID&)TrueReadFile, ReadFileWithLog);
     DetourTransactionCommit();
-
-    logger.open(R"(D:\log.txt)", std::ios_base::app);
-    logger.open(R"(D:\report.txt)", std::ios_base::app);
-    //out.open(R"(C:\Users\gggg8\Desktop\tmp\log.txt)", std::ios_base::app);
 }
 
 void WINAPI ProcessDetach(  HMODULE hModule,

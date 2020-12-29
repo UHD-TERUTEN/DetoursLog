@@ -102,9 +102,9 @@ FileVersionInformation GetFileVersionInformation(const std::string& fileName)
     
     if (auto bufsize = GetFileVersionInfoSizeA(fileName.c_str(), NULL))
     {
-        auto buffer = std::make_unique<char>(bufsize);
+        auto buffer = new char[bufsize] {};
 
-        if (GetFileVersionInfoA(fileName.c_str(), 0, bufsize, buffer.get()))
+        if (GetFileVersionInfoA(fileName.c_str(), 0, bufsize, buffer))
         {
             std::vector<std::pair<std::function<std::string(const char*)>, std::string&>> stringFileInfoGetters
             {
@@ -124,21 +124,22 @@ FileVersionInformation GetFileVersionInformation(const std::string& fileName)
                 auto GetStringFileInfo = getter.first;
                 auto& stringFileInfo = getter.second;
 
-                if (auto queryString = GetStringFileInfo(buffer.get());
+                if (auto queryString = GetStringFileInfo(buffer);
                     queryString.length())
                 {
-                    if (VerQueryValueA(buffer.get(), queryString.c_str(), (LPVOID*)&stringValue, (PUINT)&bufsize))
+                    if (VerQueryValueA(buffer, queryString.c_str(), (LPVOID*)&stringValue, (PUINT)&bufsize))
                         stringFileInfo = stringValue;
                 }
             }
         }
+        delete[] buffer;
     }
     return info;
 }
 
 void Log(const FileVersionInformation& fileVersion)
 {
-    logger  << "CompanyName:\t"         << fileVersion.companyName      << std::endl
+    report  << "CompanyName:\t"         << fileVersion.companyName      << std::endl
             << "FileDescription:\t"     << fileVersion.fileDescription  << std::endl
             << "FileVersion:\t"         << fileVersion.fileVersion      << std::endl
             << "InternalName:\t"        << fileVersion.internalName     << std::endl
