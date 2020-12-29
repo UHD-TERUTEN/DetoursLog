@@ -17,8 +17,6 @@ static PReadFile TrueReadFile = ReadFile;
 extern std::ofstream logger;
 extern std::ofstream report;
 
-static std::mutex loggerMutex;
-static std::mutex reportMutex;
 
 __declspec(dllexport)
 BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
@@ -34,8 +32,6 @@ BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
         lpNumberOfBytesRead,
         lpOverlapped
     );
-
-    const std::lock_guard<std::mutex> loggerLock(loggerMutex);
 
     logger  << __FUNCTION__"("
             << hFile << " , "
@@ -61,12 +57,6 @@ BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
     else
         logger << "error: " << GetLastError() << std::endl;
 
-    if (logger.bad())
-    {
-        const std::lock_guard<std::mutex> reportLock(reportMutex);
-        report << logger.rdstate();
-        logger.clear();
-    }
     return ret;
 }
 
