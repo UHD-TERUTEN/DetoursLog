@@ -22,9 +22,6 @@ std::string GetFormatDateTime(FILETIME fileTime)
     DWORD pdwFlags = FDTF_DEFAULT;
     char formatDateTime[BUFSIZ] = { 0 };
 
-#ifdef DEBUGFLAG
-    logger << 4 << std::endl;
-#endif
     SHFormatDateTimeA(&fileTime, &pdwFlags, formatDateTime, sizeof(formatDateTime));
 
     return std::string(formatDateTime);
@@ -37,63 +34,31 @@ std::optional<FileInformation> GetFileInformation(HANDLE hFile)
 {
     BY_HANDLE_FILE_INFORMATION info;
 
-#ifdef DEBUGFLAG
-    logger << 1 << std::endl;
-#endif
     if (!GetFileInformationByHandle(hFile, &info))
     {
         return {};
     }
-#ifdef DEBUGFLAG
-    logger << 2 << std::endl;
-#endif
 
     std::wstring pathName;
     if (filePathCache.find(hFile) == filePathCache.end())
     {
         constexpr size_t PATHLEN = BUFSIZ * 4;
         TCHAR path[PATHLEN];
-#ifdef DEBUGFLAG
-        logger << 3.1 << std::endl;
-#endif
+
         GetFinalPathNameByHandle(hFile, path, PATHLEN, VOLUME_NAME_DOS);
 
-#ifdef DEBUGFLAG
-        logger << 3.3 << std::endl;
-#endif
         pathName = (filePathCache[hFile] = (path + 4));    // remove prepended '\\?\'
     }
     else
     {
-#ifdef DEBUGFLAG
-        logger << 3.9 << std::endl;
-#endif
         pathName = filePathCache[hFile];
     }
 
-#ifdef DEBUGFLAG
-    logger << 'a' << std::endl;
-#endif
     auto a = ToString(pathName);
-#ifdef DEBUGFLAG
-    logger << 'b' << std::endl;
-#endif
     auto b = (long long(info.nFileSizeHigh) << 32) | info.nFileSizeLow;
-#ifdef DEBUGFLAG
-    logger << 'c' << std::endl;
-#endif
     auto c = GetFormatDateTime(info.ftCreationTime);
-#ifdef DEBUGFLAG
-    logger << 'd' << std::endl;
-#endif
     auto d = GetFormatDateTime(info.ftLastWriteTime);
-#ifdef DEBUGFLAG
-    logger << 'e' << std::endl;
-#endif
     auto e = static_cast<bool>(info.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN);
-#ifdef DEBUGFLAG
-    logger << 'ret' << std::endl;
-#endif
     return FileInformation{ a,b,c,d,e };
 
     //return FileStandardInformation
