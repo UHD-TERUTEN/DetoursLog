@@ -31,7 +31,7 @@ namespace FileVersionGetter
         if (VerQueryValueA(buffer, R"(\VarFileInfo\Translation)", (LPVOID*)&translate, (PUINT)&bufsize))
         {
             ss.setf(std::ios::hex, std::ios::basefield);
-            ss << std::setw(4) << std::setfill('0') << translate[0].language
+            ss  << std::setw(4) << std::setfill('0') << translate[0].language
                 << std::setw(4) << std::setfill('0') << translate[0].codePage;
         }
         return ss.str();
@@ -44,8 +44,8 @@ namespace FileVersionGetter
         if (langCodePage.empty())
             langCodePage = "041204b0"s;
 
-        std::stringstream ss;
-        ss << R"(\StringFileInfo\)"
+        std::stringstream ss{};
+        ss  << R"(\StringFileInfo\)"
             << langCodePage
             << key;
         return ss.str();
@@ -55,40 +55,40 @@ namespace FileVersionGetter
     {
         return GetStringName(buffer, R"(\CompanyName)");
     }
+
     inline static std::string GetFileDescription(const char* buffer)
     {
         return GetStringName(buffer, R"(\FileDescription)");
     }
+
     inline static std::string GetFileVersion(const char* buffer)
     {
         return GetStringName(buffer, R"(\FileVersion)");
     }
+
     inline static std::string GetInternalName(const char* buffer)
     {
         return GetStringName(buffer, R"(\InternalName)");
     }
+
     inline static std::string GetLegalCopyright(const char* buffer)
     {
         return GetStringName(buffer, R"(\LegalCopyright)");
     }
+
     inline static std::string GetOriginalFilename(const char* buffer)
     {
         return GetStringName(buffer, R"(\OriginalFilename)");
     }
+
     inline static std::string GetProductName(const char* buffer)
     {
         return GetStringName(buffer, R"(\ProductName)");
     }
+
     inline static std::string GetProductVersion(const char* buffer)
     {
         return GetStringName(buffer, R"(\ProductVersion)");
-    }
-
-    static void SetStringFileInfo(FileVersionInformation& info, const char* buffer)
-    {
-        info.companyName = GetCompanyName(buffer);
-        info.fileDescription = GetFileDescription(buffer);
-        info.internalName = GetInternalName(buffer);
     }
 }
 using namespace FileVersionGetter;
@@ -128,9 +128,7 @@ FileVersionInformation GetFileVersionInformation(const std::string& fileName)
                     queryString.length())
                 {
                     if (VerQueryValueA(buffer.get(), queryString.c_str(), (LPVOID*)&stringValue, (PUINT)&bufsize))
-                    {
                         stringFileInfo = stringValue;
-                    }
                 }
             }
         }

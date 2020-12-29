@@ -3,18 +3,18 @@
 #include <wchar.h>
 
 #include <string>
-#include <optional>
 #include <Windows.h>
+using namespace std::literals;
 
 struct FileInformation
 {
-    std::string fileName;
-    long long   fileSize;
-    std::string creationTime;
-    std::string lastWriteTime;
-    bool        isHidden;
+    std::string fileName        = "(EMPTY)"s;
+    long long   fileSize        = 0LL;
+    std::string creationTime    = "(EMPTY)"s;
+    std::string lastWriteTime   = "(EMPTY)"s;
+    bool        isHidden        = false;
 };
 
-std::optional<FileInformation> GetFileInformation(HANDLE hFile);
+FileInformation GetFileInformation(HANDLE hFile);
 
 void Log(const FileInformation& fileInfo);

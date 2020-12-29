@@ -27,14 +27,14 @@ BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
                             LPDWORD       lpNumberOfBytesRead,
                             LPOVERLAPPED  lpOverlapped)
 {
-    auto ret = TrueReadFile(
+    auto ret = TrueReadFile
+    (
         hFile,
         lpBuffer,
         nNumberOfBytesToRead,
         lpNumberOfBytesRead,
         lpOverlapped
     );
-
     const std::lock_guard<std::mutex> loggerLock(loggerMutex);
 
     logger  << __FUNCTION__"("
@@ -47,19 +47,14 @@ BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
             << std::endl
             << __FUNCTION__"->" << ret << std::endl;
 
-    if (auto fileInfoOrEmpty = GetFileInformation(hFile))
-    {
-        auto fileInfo = fileInfoOrEmpty.value();
-        Log(fileInfo);
+    auto fileInfo = GetFileInformation(hFile);
+    Log(fileInfo);
 
-        if (IsDll(fileInfo))
-        {
-            auto fileProp = GetFileVersionInformation(fileInfo.fileName);
-            Log(fileProp);
-        }
-    }
-    else
-        logger << "error: " << GetLastError() << std::endl;
+    //if (IsDll(fileInfo))
+    //{
+    //    auto versionInfo = GetFileVersionInformation(fileInfo.fileName);
+    //    Log(versionInfo);
+    //}
 
     if (logger.bad())
     {
