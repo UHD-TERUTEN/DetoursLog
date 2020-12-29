@@ -13,8 +13,6 @@
 
 #include "utilities.cpp"
 
-//#define DEBUGFLAG
-
 extern std::ofstream logger;
 extern std::ofstream report;
 
