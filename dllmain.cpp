@@ -37,6 +37,10 @@ BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
     );
     const std::lock_guard<std::mutex> loggerLock(loggerMutex);
 
+    char fileName[MAX_PATH]{};
+    GetModuleFileNameA(NULL, fileName, MAX_PATH);
+    logger << "From: " << fileName << std::endl;
+
     logger  << __FUNCTION__"("
             << hFile << " , "
             << lpBuffer << " , "
@@ -53,7 +57,7 @@ BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
     if (logger.bad())
     {
         const std::lock_guard<std::mutex> reportLock(reportMutex);
-        report << logger.rdstate();
+        report << logger.rdstate() << std::endl;
         logger.clear();
     }
     return ret;

@@ -51,9 +51,10 @@ FileInformation GetFileInformation(HANDLE hFile)
 
 void Log(const FileInformation& fileInfo)
 {
-    logger  << "파일 이름:\t"   << fileInfo.fileName         << std::endl
-            << "크기:\t\t"     << fileInfo.fileSize         << std::endl
-            << "만든 날짜:\t"   << fileInfo.creationTime     << std::endl
-            << "수정한 날짜:\t" << fileInfo.lastWriteTime    << std::endl
-            << "숨김:\t\t"     << fileInfo.isHidden         << std::endl;
+    logger  << "파일 이름:\t"   << fileInfo.fileName       << std::endl
+            << "크기:\t\t"     << fileInfo.fileSize       << std::endl
+            << "만든 날짜:\t"   << fileInfo.creationTime   << std::endl
+            << "수정한 날짜:\t" << fileInfo.lastWriteTime  << std::endl
+            << "숨김:\t\t"     << fileInfo.isHidden       << std::endl
+            << std::endl;
 }
