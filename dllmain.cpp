@@ -97,7 +97,7 @@ BOOL ProcessEnumerate()
     char fileName[MAX_PATH]{};
     GetModuleFileNameA(NULL, fileName, MAX_PATH);
 
-    modules << "######################################################### "
+    modules << "###### "
             << fileName << " : Binaries" << std::endl;
 
     PBYTE pbNext;
