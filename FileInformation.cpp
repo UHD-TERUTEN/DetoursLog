@@ -10,7 +10,7 @@
 #include "utilities.cpp"
 
 extern std::ofstream logger;
-extern std::ofstream report;
+extern std::ofstream modules;
 
 static
 std::string GetFormatDateTime(FILETIME fileTime)

@@ -14,7 +14,7 @@
 #include "utilities.cpp"
 
 extern std::ofstream logger;
-extern std::ofstream report;
+extern std::ofstream modules;
 
 namespace FileVersionGetter
 {
@@ -139,7 +139,7 @@ FileVersionInformation GetFileVersionInformation(const std::string& fileName)
 
 void Log(const FileVersionInformation& fileVersion)
 {
-    report  << "CompanyName:\t"         << fileVersion.companyName      << std::endl
+    modules << "CompanyName:\t"         << fileVersion.companyName      << std::endl
             << "FileDescription:\t"     << fileVersion.fileDescription  << std::endl
             << "FileVersion:\t"         << fileVersion.fileVersion      << std::endl
             << "InternalName:\t"        << fileVersion.internalName     << std::endl

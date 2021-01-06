@@ -14,7 +14,7 @@ using PReadFile = BOOL(WINAPI*)(HANDLE, LPVOID, DWORD, LPDWORD, LPOVERLAPPED);
 static PReadFile TrueReadFile = ReadFile;
 
 extern std::ofstream logger;
-extern std::ofstream report;
+extern std::ofstream modules;
 
 static std::mutex loggerMutex;
 static std::mutex reportMutex;
@@ -56,7 +56,7 @@ BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
     if (logger.bad())
     {
         const std::lock_guard<std::mutex> reportLock(reportMutex);
-        report << logger.rdstate() << std::endl;
+        modules << logger.rdstate() << std::endl;
         logger.clear();
     }
     return ret;
@@ -94,7 +94,11 @@ PIMAGE_NT_HEADERS NtHeadersForInstance(HINSTANCE hInst)
 
 BOOL ProcessEnumerate()
 {
-    report << "######################################################### Binaries\n";
+    char fileName[MAX_PATH]{};
+    GetModuleFileNameA(NULL, fileName, MAX_PATH);
+
+    modules << "######################################################### "
+            << fileName << " : Binaries" << std::endl;
 
     PBYTE pbNext;
     for (PBYTE pbRegion = (PBYTE)0x10000;; pbRegion = pbNext)
@@ -141,14 +145,14 @@ BOOL ProcessEnumerate()
             std::wstring temp(wzDllName);
             std::string name;
             name.assign(std::begin(temp), std::end(temp));
-            report << "----------------------------------" << std::endl;
-            report << name << std::endl;
+            modules << "-------------------------------------------------------" << std::endl;
+            modules << name << std::endl;
             auto versionInfo = GetFileVersionInformation(name);
             Log(versionInfo);
-            report << "----------------------------------" << std::endl;
+            modules << "-------------------------------------------------------" << std::endl;
         }
     }
-    report << std::endl;
+    modules << std::endl;
 
     return TRUE;
 }
@@ -158,7 +162,7 @@ void WINAPI ProcessAttach(  HMODULE hModule,
                             LPVOID  lpReserved)
 {
     logger.open(R"(D:\log.txt)", std::ios_base::app);
-    report.open(R"(D:\report.txt)", std::ios_base::app);
+    modules.open(R"(D:\modules.txt)", std::ios_base::app);
     //out.open(R"(C:\Users\gggg8\Desktop\tmp\log.txt)", std::ios_base::app);
 
     ProcessEnumerate();
