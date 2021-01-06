@@ -45,6 +45,7 @@ BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
     );
     const std::lock_guard<std::mutex> loggerLock(loggerMutex);
 
+    logger << "-------------------------------------------------------" << std::endl;
     LogCurrentProgramName();
 
     auto fileAccessInfo = GetFileAccessInfo(__FUNCTION__, ret);
@@ -52,6 +53,7 @@ BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
 
     auto fileInfo = GetFileInfo(hFile);
     Log(fileInfo);
+    logger << "-------------------------------------------------------" << std::endl;
 
     if (logger.bad())
     {

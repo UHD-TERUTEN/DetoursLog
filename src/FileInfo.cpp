@@ -52,7 +52,6 @@ namespace LogData
 
     void Log(const FileInfo& fileInfo)
     {
-        logger  << "--------------------- [ File Information ]" << std::endl;
         logger  << "파일 이름:\t"   << fileInfo.fileName       << std::endl
                 << "크기:\t\t"     << fileInfo.fileSize       << std::endl
                 << "만든 날짜:\t"   << fileInfo.creationTime   << std::endl

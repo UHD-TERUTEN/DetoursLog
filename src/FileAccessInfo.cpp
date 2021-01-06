@@ -19,7 +19,6 @@ namespace LogData
 
     void Log(const FileAccessInfo& fileAccessInfo)
 	{
-        logger  << "--------------------- [ File Access Information ]" << std::endl;
         logger  << "Function name:\t"   << fileAccessInfo.functionName              << std::endl
                 << "Return value:\t"    << BoolToText(fileAccessInfo.returnValue)   << std::endl
                 << "Error code:\t"      << fileAccessInfo.errorCode                 << std::endl;
