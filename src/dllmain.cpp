@@ -1,6 +1,7 @@
 ﻿#define WIN32_LEAN_AND_MEAN
-#include "FileInformation.h"
-#include "FileVersionInformation.h"
+#include "FileInfo.h"
+#include "ModuleInfo.h"
+#include "FileAccessInfo.h"
 using namespace LogData;
 
 #include <string>
@@ -20,6 +21,13 @@ extern std::ofstream modules;
 static std::mutex loggerMutex;
 static std::mutex reportMutex;
 
+static void LogCurrentProgramName()
+{
+    static char programName[MAX_PATH]{};
+    GetModuleFileNameA(NULL, programName, MAX_PATH);
+    logger << "From: " << programName << std::endl;
+}
+
 __declspec(dllexport)
 BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
                             LPVOID        lpBuffer,
@@ -37,21 +45,12 @@ BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
     );
     const std::lock_guard<std::mutex> loggerLock(loggerMutex);
 
-    char fileName[MAX_PATH]{};
-    GetModuleFileNameA(NULL, fileName, MAX_PATH);
-    logger << "From: " << fileName << std::endl;
+    LogCurrentProgramName();
 
-    logger  << __FUNCTION__"("
-            << hFile << " , "
-            << lpBuffer << " , "
-            << nNumberOfBytesToRead << " , "
-            << lpNumberOfBytesRead << " , "
-            << lpOverlapped
-            << ")"
-            << std::endl
-            << __FUNCTION__"->" << ret << std::endl;
+    auto fileAccessInfo = GetFileAccessInfo(__FUNCTION__, ret);
+    Log(fileAccessInfo);
 
-    auto fileInfo = GetFileInformation(hFile);
+    auto fileInfo = GetFileInfo(hFile);
     Log(fileInfo);
 
     if (logger.bad())
@@ -148,7 +147,7 @@ BOOL ProcessEnumerate()
             name.assign(std::begin(temp), std::end(temp));
             modules << "-------------------------------------------------------" << std::endl;
             modules << name << std::endl;
-            auto versionInfo = GetFileVersionInformation(name);
+            auto versionInfo = GetModuleInfo(name);
             Log(versionInfo);
             modules << "-------------------------------------------------------" << std::endl;
         }

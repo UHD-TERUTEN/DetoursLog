@@ -1,5 +1,5 @@
 #define WIN32_LEAN_AND_MEAN
-#include "FileInformation.h"
+#include "FileInfo.h"
 
 #include <fstream>
 #include <unordered_map>
@@ -12,8 +12,7 @@
 extern std::ofstream logger;
 extern std::ofstream modules;
 
-static
-std::string GetFormatDateTime(FILETIME fileTime)
+static std::string GetFormatDateTime(FILETIME fileTime)
 {
     // convert FILETIME to format date time
     DWORD pdwFlags = FDTF_DEFAULT;
@@ -28,10 +27,10 @@ std::string GetFormatDateTime(FILETIME fileTime)
 
 namespace LogData
 {
-    FileInformation GetFileInformation(HANDLE hFile)
+    FileInfo GetFileInfo(HANDLE hFile)
     {
         BY_HANDLE_FILE_INFORMATION handleFileInfo{};
-        FileInformation info{};
+        FileInfo info{};
 
         if (GetFileInformationByHandle(hFile, &handleFileInfo))
         {
@@ -51,13 +50,14 @@ namespace LogData
         return info;
     }
 
-    void Log(const FileInformation& fileInfo)
+    void Log(const FileInfo& fileInfo)
     {
-        logger << "파일 이름:\t" << fileInfo.fileName << std::endl
-            << "크기:\t\t" << fileInfo.fileSize << std::endl
-            << "만든 날짜:\t" << fileInfo.creationTime << std::endl
-            << "수정한 날짜:\t" << fileInfo.lastWriteTime << std::endl
-            << "숨김:\t\t" << fileInfo.isHidden << std::endl
-            << std::endl;
+        logger  << "--------------------- [ File Information ]" << std::endl;
+        logger  << "파일 이름:\t"   << fileInfo.fileName       << std::endl
+                << "크기:\t\t"     << fileInfo.fileSize       << std::endl
+                << "만든 날짜:\t"   << fileInfo.creationTime   << std::endl
+                << "수정한 날짜:\t" << fileInfo.lastWriteTime  << std::endl
+                << "숨김:\t\t"     << fileInfo.isHidden       << std::endl
+                << std::endl;
     }
 }

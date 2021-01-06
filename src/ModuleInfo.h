@@ -6,7 +6,7 @@ using namespace std::literals;
 
 namespace LogData
 {
-    struct FileVersionInformation
+    struct ModuleInfo
     {
         std::string companyName = "(EMPTY)"s;
         std::string fileDescription = "(EMPTY)"s;
@@ -18,7 +18,7 @@ namespace LogData
         std::string productVersion = "(EMPTY)"s;
     };
 
-    FileVersionInformation GetFileVersionInformation(const std::string& fileName);
+    ModuleInfo GetModuleInfo(const std::string& fileName);
 
-    void Log(const FileVersionInformation& fileInfo);
+    void Log(const ModuleInfo& moduleInfo);
 }

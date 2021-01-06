@@ -1,5 +1,5 @@
 #define WIN32_LEAN_AND_MEAN
-#include "FileVersionInformation.h"
+#include "ModuleInfo.h"
 
 #include <string>
 #include <sstream>
@@ -18,8 +18,7 @@ extern std::ofstream modules;
 
 namespace FileVersionGetter
 {
-    static
-        std::string GetLanguageCodePageString(const char* buffer)
+    static std::string GetLanguageCodePageString(const char* buffer)
     {
         struct LanguageCodePage
         {
@@ -37,8 +36,7 @@ namespace FileVersionGetter
         return ss.str();
     }
 
-    static
-        std::string GetStringName(const char* buffer, const char* key)
+    static std::string GetStringName(const char* buffer, const char* key)
     {
         auto langCodePage = GetLanguageCodePageString(buffer);
         if (langCodePage.empty())
@@ -98,9 +96,9 @@ namespace LogData
 
     // https://docs.microsoft.com/en-us/windows/win32/api/winver/nf-winver-verqueryvaluea
     // https://docs.microsoft.com/en-us/windows/win32/menurc/version-information
-    FileVersionInformation GetFileVersionInformation(const std::string& fileName)
+    ModuleInfo GetModuleInfo(const std::string& fileName)
     {
-        FileVersionInformation info{};
+        ModuleInfo info{};
 
         if (auto bufsize = GetFileVersionInfoSizeA(fileName.c_str(), NULL))
         {
@@ -139,15 +137,15 @@ namespace LogData
         return info;
     }
 
-    void Log(const FileVersionInformation& fileVersion)
+    void Log(const ModuleInfo& moduleInfo)
     {
-        modules << "CompanyName:\t" << fileVersion.companyName << std::endl
-            << "FileDescription:\t" << fileVersion.fileDescription << std::endl
-            << "FileVersion:\t" << fileVersion.fileVersion << std::endl
-            << "InternalName:\t" << fileVersion.internalName << std::endl
-            << "LegalCopyright:\t" << fileVersion.legalCopyright << std::endl
-            << "OriginalFilename:\t" << fileVersion.originalFilename << std::endl
-            << "ProductName:\t" << fileVersion.productName << std::endl
-            << "ProductVersion:\t" << fileVersion.productVersion << std::endl;
+        modules << "CompanyName:\t"         << moduleInfo.companyName      << std::endl
+                << "FileDescription:\t"     << moduleInfo.fileDescription  << std::endl
+                << "FileVersion:\t"         << moduleInfo.fileVersion      << std::endl
+                << "InternalName:\t"        << moduleInfo.internalName     << std::endl
+                << "LegalCopyright:\t"      << moduleInfo.legalCopyright   << std::endl
+                << "OriginalFilename:\t"    << moduleInfo.originalFilename << std::endl
+                << "ProductName:\t"         << moduleInfo.productName      << std::endl
+                << "ProductVersion:\t"      << moduleInfo.productVersion   << std::endl;
     }
 }

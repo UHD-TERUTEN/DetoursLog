@@ -1,10 +1,10 @@
-#include "FileInformation.h"
+#include "FileInfo.h"
 using namespace LogData;
 
 #include <string>
 
 inline
-bool IsDll(const FileInformation& fileInfo)
+bool IsDll(const FileInfo& fileInfo)
 {
     return fileInfo.fileName.rfind(".dll") != std::string::npos
         || fileInfo.fileName.rfind(".DLL") != std::string::npos;
