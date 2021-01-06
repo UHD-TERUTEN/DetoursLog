@@ -1,11 +1,11 @@
 #define WIN32_LEAN_AND_MEAN
 #include "FileInformation.h"
 
-#include <Windows.h>
-#include <Shlwapi.h>    // SHFormatDateTimeA
-
 #include <fstream>
 #include <unordered_map>
+
+#include <Windows.h>
+#include <Shlwapi.h>    // SHFormatDateTimeA
 
 #include "utilities.cpp"
 

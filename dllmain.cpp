@@ -1,11 +1,10 @@
-﻿// dllmain.cpp : DLL 애플리케이션의 진입점을 정의합니다.
-#define WIN32_LEAN_AND_MEAN
+﻿#define WIN32_LEAN_AND_MEAN
 #include "FileInformation.h"
 #include "FileVersionInformation.h"
 
+#include <string>
 #include <fstream>
 #include <mutex>
-#include <string>
 
 #include <detours.h>
 

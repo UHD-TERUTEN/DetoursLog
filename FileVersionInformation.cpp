@@ -1,15 +1,15 @@
 #define WIN32_LEAN_AND_MEAN
 #include "FileVersionInformation.h"
 
-#include <WinBase.h>    // FindResource
-
-#include <fstream>
 #include <string>
-#include <memory>
 #include <sstream>
+#include <fstream>
 #include <iomanip>
 #include <vector>
+#include <memory>
 #include <functional>
+
+#include <WinBase.h>    // FindResource
 
 #include "utilities.cpp"
 

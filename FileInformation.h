@@ -1,10 +1,10 @@
 #pragma once
 #include <cstdint>
-#include <wchar.h>
-
 #include <string>
-#include <Windows.h>
 using namespace std::literals;
+
+#include <Windows.h>
+#include <wchar.h>
 
 struct FileInformation
 {

@@ -1,4 +1,5 @@
 #include "FileInformation.h"
+
 #include <string>
 
 inline
