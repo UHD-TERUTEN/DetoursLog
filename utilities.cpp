@@ -1,4 +1,5 @@
 #include "FileInformation.h"
+using namespace LogData;
 
 #include <string>
 

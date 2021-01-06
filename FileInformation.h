@@ -6,15 +6,18 @@ using namespace std::literals;
 #include <Windows.h>
 #include <wchar.h>
 
-struct FileInformation
+namespace LogData
 {
-    std::string fileName        = "(EMPTY)"s;
-    long long   fileSize        = 0LL;
-    std::string creationTime    = "(EMPTY)"s;
-    std::string lastWriteTime   = "(EMPTY)"s;
-    bool        isHidden        = false;
-};
+    struct FileInformation
+    {
+        std::string fileName = "(EMPTY)"s;
+        long long   fileSize = 0LL;
+        std::string creationTime = "(EMPTY)"s;
+        std::string lastWriteTime = "(EMPTY)"s;
+        bool        isHidden = false;
+    };
 
-FileInformation GetFileInformation(HANDLE hFile);
+    FileInformation GetFileInformation(HANDLE hFile);
 
-void Log(const FileInformation& fileInfo);
+    void Log(const FileInformation& fileInfo);
+}

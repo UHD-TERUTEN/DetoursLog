@@ -91,60 +91,63 @@ namespace FileVersionGetter
         return GetStringName(buffer, R"(\ProductVersion)");
     }
 }
-using namespace FileVersionGetter;
 
-
-// https://docs.microsoft.com/en-us/windows/win32/api/winver/nf-winver-verqueryvaluea
-// https://docs.microsoft.com/en-us/windows/win32/menurc/version-information
-FileVersionInformation GetFileVersionInformation(const std::string& fileName)
+namespace LogData
 {
-    FileVersionInformation info{};
-    
-    if (auto bufsize = GetFileVersionInfoSizeA(fileName.c_str(), NULL))
+    using namespace FileVersionGetter;
+
+    // https://docs.microsoft.com/en-us/windows/win32/api/winver/nf-winver-verqueryvaluea
+    // https://docs.microsoft.com/en-us/windows/win32/menurc/version-information
+    FileVersionInformation GetFileVersionInformation(const std::string& fileName)
     {
-        auto buffer = new char[bufsize] {};
+        FileVersionInformation info{};
 
-        if (GetFileVersionInfoA(fileName.c_str(), 0, bufsize, buffer))
+        if (auto bufsize = GetFileVersionInfoSizeA(fileName.c_str(), NULL))
         {
-            std::vector<std::pair<std::function<std::string(const char*)>, std::string&>> stringFileInfoGetters
-            {
-                { GetCompanyName, info.companyName },
-                { GetFileDescription, info.fileDescription },
-                { GetFileVersion, info.fileVersion },
-                { GetInternalName, info.internalName },
-                { GetLegalCopyright, info.legalCopyright },
-                { GetOriginalFilename, info.originalFilename },
-                { GetProductName, info.productName },
-                { GetProductVersion, info.productVersion }
-            };
-            char* stringValue = NULL;   // 내부 메모리를 가리키는 포인터, 해제 X
+            auto buffer = new char[bufsize] {};
 
-            for (auto getter : stringFileInfoGetters)
+            if (GetFileVersionInfoA(fileName.c_str(), 0, bufsize, buffer))
             {
-                auto GetStringFileInfo = getter.first;
-                auto& stringFileInfo = getter.second;
-
-                if (auto queryString = GetStringFileInfo(buffer);
-                    queryString.length())
+                std::vector<std::pair<std::function<std::string(const char*)>, std::string&>> stringFileInfoGetters
                 {
-                    if (VerQueryValueA(buffer, queryString.c_str(), (LPVOID*)&stringValue, (PUINT)&bufsize))
-                        stringFileInfo = stringValue;
+                    { GetCompanyName, info.companyName },
+                    { GetFileDescription, info.fileDescription },
+                    { GetFileVersion, info.fileVersion },
+                    { GetInternalName, info.internalName },
+                    { GetLegalCopyright, info.legalCopyright },
+                    { GetOriginalFilename, info.originalFilename },
+                    { GetProductName, info.productName },
+                    { GetProductVersion, info.productVersion }
+                };
+                char* stringValue = NULL;   // 내부 메모리를 가리키는 포인터, 해제 X
+
+                for (auto getter : stringFileInfoGetters)
+                {
+                    auto GetStringFileInfo = getter.first;
+                    auto& stringFileInfo = getter.second;
+
+                    if (auto queryString = GetStringFileInfo(buffer);
+                        queryString.length())
+                    {
+                        if (VerQueryValueA(buffer, queryString.c_str(), (LPVOID*)&stringValue, (PUINT)&bufsize))
+                            stringFileInfo = stringValue;
+                    }
                 }
             }
+            delete[] buffer;
         }
-        delete[] buffer;
+        return info;
     }
-    return info;
-}
 
-void Log(const FileVersionInformation& fileVersion)
-{
-    modules << "CompanyName:\t"         << fileVersion.companyName      << std::endl
-            << "FileDescription:\t"     << fileVersion.fileDescription  << std::endl
-            << "FileVersion:\t"         << fileVersion.fileVersion      << std::endl
-            << "InternalName:\t"        << fileVersion.internalName     << std::endl
-            << "LegalCopyright:\t"      << fileVersion.legalCopyright   << std::endl
-            << "OriginalFilename:\t"    << fileVersion.originalFilename << std::endl
-            << "ProductName:\t"         << fileVersion.productName      << std::endl
-            << "ProductVersion:\t"      << fileVersion.productVersion   << std::endl;
+    void Log(const FileVersionInformation& fileVersion)
+    {
+        modules << "CompanyName:\t" << fileVersion.companyName << std::endl
+            << "FileDescription:\t" << fileVersion.fileDescription << std::endl
+            << "FileVersion:\t" << fileVersion.fileVersion << std::endl
+            << "InternalName:\t" << fileVersion.internalName << std::endl
+            << "LegalCopyright:\t" << fileVersion.legalCopyright << std::endl
+            << "OriginalFilename:\t" << fileVersion.originalFilename << std::endl
+            << "ProductName:\t" << fileVersion.productName << std::endl
+            << "ProductVersion:\t" << fileVersion.productVersion << std::endl;
+    }
 }

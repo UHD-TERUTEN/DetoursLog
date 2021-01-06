@@ -1,6 +1,7 @@
 ﻿#define WIN32_LEAN_AND_MEAN
 #include "FileInformation.h"
 #include "FileVersionInformation.h"
+using namespace LogData;
 
 #include <string>
 #include <fstream>
