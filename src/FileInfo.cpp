@@ -56,7 +56,6 @@ namespace LogData
                 << "Å©±â:\t\t"     << fileInfo.fileSize       << std::endl
                 << "¸¸µç ³¯Â¥:\t"   << fileInfo.creationTime   << std::endl
                 << "¼öÁ¤ÇÑ ³¯Â¥:\t" << fileInfo.lastWriteTime  << std::endl
-                << "¼û±è:\t\t"     << fileInfo.isHidden       << std::endl
-                << std::endl;
+                << "¼û±è:\t\t"     << fileInfo.isHidden       << std::endl;
     }
 }
