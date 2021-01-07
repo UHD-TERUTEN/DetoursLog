@@ -1,9 +1,9 @@
 #define WIN32_LEAN_AND_MEAN
 #include "ModuleInfo.h"
+#include "utilities.h"
 
 #include <string>
 #include <sstream>
-#include <fstream>
 #include <iomanip>
 #include <vector>
 #include <memory>
@@ -11,82 +11,77 @@
 
 #include <WinBase.h>    // FindResource
 
-#include "utilities.cpp"
-
-extern std::ofstream logger;
-extern std::ofstream modules;
-
 namespace FileVersionGetter
 {
-    static std::string GetLanguageCodePageString(const char* buffer)
+    static std::wstring GetLanguageCodePageString(const wchar_t* buffer)
     {
         struct LanguageCodePage
         {
             WORD language, codePage;
         } *translate{};
         auto bufsize = sizeof(LanguageCodePage);
-        std::stringstream ss{};
+        std::wstringstream ss{};
 
-        if (VerQueryValueA(buffer, R"(\VarFileInfo\Translation)", (LPVOID*)&translate, (PUINT)&bufsize))
+        if (VerQueryValue(buffer, LR"(\VarFileInfo\Translation)", (LPVOID*)&translate, (PUINT)&bufsize))
         {
             ss.setf(std::ios::hex, std::ios::basefield);
-            ss  << std::setw(4) << std::setfill('0') << translate[0].language
-                << std::setw(4) << std::setfill('0') << translate[0].codePage;
+            ss  << std::setw(4) << std::setfill(L'0') << translate[0].language
+                << std::setw(4) << std::setfill(L'0') << translate[0].codePage;
         }
         return ss.str();
     }
 
-    static std::string GetStringName(const char* buffer, const char* key)
+    static std::wstring GetStringName(const wchar_t* buffer, const wchar_t* key)
     {
         auto langCodePage = GetLanguageCodePageString(buffer);
         if (langCodePage.empty())
-            langCodePage = "041204b0"s;
+            langCodePage = L"041204b0"s;
 
-        std::stringstream ss{};
-        ss  << R"(\StringFileInfo\)"
+        std::wstringstream ss{};
+        ss  << LR"(\StringFileInfo\)"
             << langCodePage
             << key;
         return ss.str();
     }
 
-    inline static std::string GetCompanyName(const char* buffer)
+    inline static std::wstring GetCompanyName(const wchar_t* buffer)
     {
-        return GetStringName(buffer, R"(\CompanyName)");
+        return GetStringName(buffer, LR"(\CompanyName)");
     }
 
-    inline static std::string GetFileDescription(const char* buffer)
+    inline static std::wstring GetFileDescription(const wchar_t* buffer)
     {
-        return GetStringName(buffer, R"(\FileDescription)");
+        return GetStringName(buffer, LR"(\FileDescription)");
     }
 
-    inline static std::string GetFileVersion(const char* buffer)
+    inline static std::wstring GetFileVersion(const wchar_t* buffer)
     {
-        return GetStringName(buffer, R"(\FileVersion)");
+        return GetStringName(buffer, LR"(\FileVersion)");
     }
 
-    inline static std::string GetInternalName(const char* buffer)
+    inline static std::wstring GetInternalName(const wchar_t* buffer)
     {
-        return GetStringName(buffer, R"(\InternalName)");
+        return GetStringName(buffer, LR"(\InternalName)");
     }
 
-    inline static std::string GetLegalCopyright(const char* buffer)
+    inline static std::wstring GetLegalCopyright(const wchar_t* buffer)
     {
-        return GetStringName(buffer, R"(\LegalCopyright)");
+        return GetStringName(buffer, LR"(\LegalCopyright)");
     }
 
-    inline static std::string GetOriginalFilename(const char* buffer)
+    inline static std::wstring GetOriginalFilename(const wchar_t* buffer)
     {
-        return GetStringName(buffer, R"(\OriginalFilename)");
+        return GetStringName(buffer, LR"(\OriginalFilename)");
     }
 
-    inline static std::string GetProductName(const char* buffer)
+    inline static std::wstring GetProductName(const wchar_t* buffer)
     {
-        return GetStringName(buffer, R"(\ProductName)");
+        return GetStringName(buffer, LR"(\ProductName)");
     }
 
-    inline static std::string GetProductVersion(const char* buffer)
+    inline static std::wstring GetProductVersion(const wchar_t* buffer)
     {
-        return GetStringName(buffer, R"(\ProductVersion)");
+        return GetStringName(buffer, LR"(\ProductVersion)");
     }
 }
 
@@ -96,17 +91,17 @@ namespace LogData
 
     // https://docs.microsoft.com/en-us/windows/win32/api/winver/nf-winver-verqueryvaluea
     // https://docs.microsoft.com/en-us/windows/win32/menurc/version-information
-    ModuleInfo GetModuleInfo(const std::string& fileName)
+    ModuleInfo MakeModuleInfo(const std::string& fileName)
     {
         ModuleInfo info{};
 
         if (auto bufsize = GetFileVersionInfoSizeA(fileName.c_str(), NULL))
         {
-            auto buffer = new char[bufsize] {};
+            auto buffer = new wchar_t[bufsize] {};
 
             if (GetFileVersionInfoA(fileName.c_str(), 0, bufsize, buffer))
             {
-                std::vector<std::pair<std::function<std::string(const char*)>, std::string&>> stringFileInfoGetters
+                std::vector<std::pair<std::function<std::wstring(const wchar_t*)>, std::string&>> stringFileInfoGetters
                 {
                     { GetCompanyName, info.companyName },
                     { GetFileDescription, info.fileDescription },
@@ -117,7 +112,7 @@ namespace LogData
                     { GetProductName, info.productName },
                     { GetProductVersion, info.productVersion }
                 };
-                char* stringValue = NULL;   // 내부 메모리를 가리키는 포인터, 해제 X
+                wchar_t* stringValue = NULL;   // static pointer, NEVER delete it
 
                 for (auto getter : stringFileInfoGetters)
                 {
@@ -127,25 +122,13 @@ namespace LogData
                     if (auto queryString = GetStringFileInfo(buffer);
                         queryString.length())
                     {
-                        if (VerQueryValueA(buffer, queryString.c_str(), (LPVOID*)&stringValue, (PUINT)&bufsize))
-                            stringFileInfo = stringValue;
+                        if (VerQueryValue(buffer, queryString.c_str(), (LPVOID*)&stringValue, (PUINT)&bufsize))
+                            stringFileInfo = ToUtf8String(stringValue, bufsize - 1);
                     }
                 }
             }
             delete[] buffer;
         }
         return info;
-    }
-
-    void Log(const ModuleInfo& moduleInfo)
-    {
-        modules << "CompanyName:\t"         << moduleInfo.companyName      << std::endl
-                << "FileDescription:\t"     << moduleInfo.fileDescription  << std::endl
-                << "FileVersion:\t"         << moduleInfo.fileVersion      << std::endl
-                << "InternalName:\t"        << moduleInfo.internalName     << std::endl
-                << "LegalCopyright:\t"      << moduleInfo.legalCopyright   << std::endl
-                << "OriginalFilename:\t"    << moduleInfo.originalFilename << std::endl
-                << "ProductName:\t"         << moduleInfo.productName      << std::endl
-                << "ProductVersion:\t"      << moduleInfo.productVersion   << std::endl;
     }
 }

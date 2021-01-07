@@ -6,6 +6,8 @@ using namespace std::literals;
 #include <Windows.h>
 #include <wchar.h>
 
+#include <nlohmann/json.hpp>
+
 namespace LogData
 {
     struct FileInfo
@@ -16,8 +18,14 @@ namespace LogData
         std::string lastWriteTime   = "(EMPTY)"s;
         bool        isHidden        = false;
     };
-
-    FileInfo GetFileInfo(HANDLE hFile);
-
-    void Log(const FileInfo& fileInfo);
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE
+    (
+        FileInfo,
+        fileName,
+        fileSize,
+        creationTime,
+        lastWriteTime,
+        isHidden
+    );
+    FileInfo MakeFileInfo(HANDLE hFile);
 }

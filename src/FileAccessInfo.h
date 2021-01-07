@@ -3,6 +3,8 @@
 
 #include <Windows.h>
 
+#include <nlohmann/json.hpp>
+
 namespace LogData
 {
 	struct FileAccessInfo
@@ -11,8 +13,12 @@ namespace LogData
 		BOOL		returnValue;
 		DWORD		errorCode;
 	};
-
-	FileAccessInfo GetFileAccessInfo(const std::string& functionName, BOOL returnValue);
-
-	void Log(const FileAccessInfo& fileAccessInfo);
+	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE
+	(
+		FileAccessInfo,
+		functionName,
+		returnValue,
+		errorCode
+	);
+	FileAccessInfo MakeFileAccessInfo(const std::string& functionName, BOOL returnValue);
 }

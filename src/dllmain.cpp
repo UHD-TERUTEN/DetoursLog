@@ -4,28 +4,25 @@
 #include "FileAccessInfo.h"
 using namespace LogData;
 
+#include "utilities.h"
+
+#include "Logger.h"
+
 #include <string>
-#include <fstream>
-#include <mutex>
 
 #include <detours.h>
-
-#include "utilities.cpp"
 
 using PReadFile = BOOL(WINAPI*)(HANDLE, LPVOID, DWORD, LPDWORD, LPOVERLAPPED);
 static PReadFile TrueReadFile = ReadFile;
 
-extern std::ofstream logger;
-extern std::ofstream modules;
+std::ofstream logger{};
 
-static std::mutex loggerMutex;
-static std::mutex reportMutex;
-
-static void LogCurrentProgramName()
+static char* GetCurrentProgramName()
 {
     static char programName[MAX_PATH]{};
+    std::memset(programName, 0, MAX_PATH);
     GetModuleFileNameA(NULL, programName, MAX_PATH);
-    logger << "From: " << programName << std::endl;
+    return programName;
 }
 
 __declspec(dllexport)
@@ -43,23 +40,29 @@ BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
         lpNumberOfBytesRead,
         lpOverlapped
     );
-    const std::lock_guard<std::mutex> loggerLock(loggerMutex);
 
-    logger << "-------------------------------------------------------" << std::endl;
-    LogCurrentProgramName();
-
-    auto fileAccessInfo = GetFileAccessInfo(__FUNCTION__, ret);
-    Log(fileAccessInfo);
-
-    auto fileInfo = GetFileInfo(hFile);
-    Log(fileInfo);
-    logger << "-------------------------------------------------------" << std::endl;
-
-    if (logger.bad())
+    try
     {
-        const std::lock_guard<std::mutex> reportLock(reportMutex);
-        modules << logger.rdstate() << std::endl;
-        logger.clear();
+        nlohmann::json json({ {"ProgramName", GetCurrentProgramName()} });
+        {
+            auto fileAccessInfo = MakeFileAccessInfo(__FUNCTION__, ret);
+            json["fileAccessInfo"] = GetJson(fileAccessInfo);
+        }
+        {
+            auto fileInfo = MakeFileInfo(hFile);
+            json["fileInfo"] = GetJson(fileInfo);
+        }
+        Log(json);
+
+        if (logger.bad())
+        {
+            Log({ { "state", logger.rdstate() } });
+            logger.clear();
+        }
+    }
+    catch (std::exception& e)
+    {
+        LogException(e);
     }
     return ret;
 }
@@ -98,9 +101,6 @@ BOOL ProcessEnumerate()
 {
     char fileName[MAX_PATH]{};
     GetModuleFileNameA(NULL, fileName, MAX_PATH);
-
-    modules << "###### "
-            << fileName << " : Binaries" << std::endl;
 
     PBYTE pbNext;
     for (PBYTE pbRegion = (PBYTE)0x10000;; pbRegion = pbNext)
@@ -147,15 +147,22 @@ BOOL ProcessEnumerate()
             std::wstring temp(wzDllName);
             std::string name;
             name.assign(std::begin(temp), std::end(temp));
-            modules << "-------------------------------------------------------" << std::endl;
-            modules << name << std::endl;
-            auto versionInfo = GetModuleInfo(name);
-            Log(versionInfo);
-            modules << "-------------------------------------------------------" << std::endl;
+
+            try
+            {
+                nlohmann::json json({});
+                {
+                    auto moduleInfo = MakeModuleInfo(name);
+                    json["moduleInfo"] = GetJson(moduleInfo);
+                }
+                Log(json);
+            }
+            catch (std::exception& e)
+            {
+                LogException(e);
+            }
         }
     }
-    modules << std::endl;
-
     return TRUE;
 }
 
@@ -164,8 +171,7 @@ void WINAPI ProcessAttach(  HMODULE hModule,
                             LPVOID  lpReserved)
 {
     logger.open(R"(D:\log.txt)", std::ios_base::app);
-    modules.open(R"(D:\modules.txt)", std::ios_base::app);
-    //out.open(R"(C:\Users\gggg8\Desktop\tmp\log.txt)", std::ios_base::app);
+    //logger.open(R"(C:\Users\gggg8\Desktop\tmp\log.txt)", std::ios_base::app);
 
     ProcessEnumerate();
 

@@ -168,12 +168,13 @@
     <ClInclude Include="src\FileAccessInfo.h" />
     <ClInclude Include="src\FileInfo.h" />
     <ClInclude Include="src\ModuleInfo.h" />
+    <ClInclude Include="src\utilities.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\dllmain.cpp" />
     <ClCompile Include="src\FileAccessInfo.cpp" />
     <ClCompile Include="src\FileInfo.cpp" />
-    <ClCompile Include="src\Logger.cpp" />
+    <ClCompile Include="src\Logger.h" />
     <ClCompile Include="src\ModuleInfo.cpp" />
     <ClCompile Include="src\utilities.cpp" />
   </ItemGroup>
