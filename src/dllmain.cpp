@@ -62,8 +62,8 @@ BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
 
         if (logger.bad())
         {
-            Log({ { "state", logger.rdstate() } });
             logger.clear();
+            Log({ { "state", logger.rdstate() } });
         }
     }
     catch (std::exception& e)

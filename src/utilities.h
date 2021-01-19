@@ -18,7 +18,7 @@ void Log(const nlohmann::json& json);
 
 void LogException(const std::exception& e);
 
-// concept Serializable = requires(T t, nlohmann::json j) { t.to_json(j, t); }
+// concept Serializable = requires(T t, nlohmann::json j) { to_json(j, t); }
 template <class FileInfoT>
 nlohmann::json GetJson(const FileInfoT& info)
 {
