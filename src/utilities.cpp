@@ -1,6 +1,5 @@
 #include "utilities.h"
 
-#include <mutex>
 
 static std::string GetFileExtension(const std::string& s)
 {
@@ -57,11 +56,38 @@ std::string ToUtf8String(const wchar_t* unicode, const size_t unicode_size)
 }
 
 
-static std::mutex loggerMutex;
+// https://stackoverflow.com/questions/2290154/multiple-dlls-writing-to-the-same-text-file
+struct Mutex
+{
+    Mutex() { handle = CreateMutex(0, false, L"logger_mutex"); }
+    ~Mutex() { CloseHandle(handle); }
+
+    HANDLE handle;
+};
+
+class MutexLock
+{
+public:
+    explicit MutexLock(Mutex& m)
+        : m(m)
+    {
+        WaitForSingleObject(m.handle, INFINITE);
+    }
+    ~MutexLock()
+    {
+        ReleaseMutex(m.handle);
+    }
+
+private:
+    Mutex& m;
+};
+
+static Mutex mutex{};
+
 
 void Log(const nlohmann::json& json)
 {
-    const std::lock_guard<std::mutex> loggerLock(loggerMutex);
+    MutexLock lock(mutex);
     logger << json << std::endl;
 }
 
