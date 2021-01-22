@@ -8,7 +8,7 @@ using namespace LogData;
 
 #include <nlohmann/json.hpp>
 
-bool IsExecutable(const FileInfo& fileInfo);
+bool IsDll(const FileInfo& fileInfo);
 
 std::wstring ToWstring(const std::string& s);
 

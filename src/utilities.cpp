@@ -1,22 +1,10 @@
 #include "utilities.h"
 
 
-static std::string GetFileExtension(const std::string& s)
+bool IsDll(const FileInfo& fileInfo)
 {
-    auto extpos = s.rfind('.');
-    if (extpos != std::string::npos)
-    {
-        auto extension = s.substr(extpos);
-        std::transform(std::begin(extension), std::end(extension), std::begin(extension), std::tolower);
-        return extension;
-    }
-    return "";
-}
-
-bool IsExecutable(const FileInfo& fileInfo)
-{
-    return GetFileExtension(fileInfo.fileName) == ".exe"
-        || GetFileExtension(fileInfo.fileName) == ".dll";
+    return fileInfo.fileName.rfind(".dll") != std::string::npos
+        || fileInfo.fileName.rfind(".DLL") != std::string::npos;
 }
 
 std::wstring ToWstring(const std::string& s)
