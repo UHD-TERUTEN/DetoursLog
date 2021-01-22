@@ -1,5 +1,6 @@
 #include "utilities.h"
 
+#include <mutex>
 
 static std::string GetFileExtension(const std::string& s)
 {
@@ -122,8 +123,11 @@ void InitLogger(const std::string& logPath)
     logger.open(logDirectoryName + GetShortProgramName() + ".txt"s, std::ios_base::app);
 }
 
+std::mutex mutex{};
+
 void Log(const nlohmann::json& json)
 {
+    const std::lock_guard<std::mutex> lock(mutex);
     logger << json << std::endl;
 }
 
