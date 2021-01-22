@@ -9,21 +9,17 @@ using namespace LogData;
 #include "Logger.h"
 
 #include <string>
+#include <sstream>
 
 #include <detours.h>
+
+#define LOG_PATH    R"(D:\logs\)"
 
 using PReadFile = BOOL(WINAPI*)(HANDLE, LPVOID, DWORD, LPDWORD, LPOVERLAPPED);
 static PReadFile TrueReadFile = ReadFile;
 
 std::ofstream logger{};
 
-static char* GetCurrentProgramName()
-{
-    static char programName[MAX_PATH]{};
-    std::memset(programName, 0, MAX_PATH);
-    GetModuleFileNameA(NULL, programName, MAX_PATH);
-    return programName;
-}
 
 __declspec(dllexport)
 BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
@@ -43,7 +39,8 @@ BOOL WINAPI ReadFileWithLog(HANDLE        hFile,
 
     try
     {
-        nlohmann::json json({ {"ProgramName", GetCurrentProgramName()} });
+        //nlohmann::json json({ {"ProgramName", GetCurrentProgramName()} });
+        nlohmann::json json({});
         {
             auto fileAccessInfo = MakeFileAccessInfo(__FUNCTION__, ret);
             json["fileAccessInfo"] = GetJson(fileAccessInfo);
@@ -77,7 +74,7 @@ void WINAPI ProcessAttach(  HMODULE hModule,
                             DWORD   ul_reason_for_call,
                             LPVOID  lpReserved)
 {
-    logger.open(R"(D:\log.txt)", std::ios_base::app);
+    InitLogger(LOG_PATH);
 
     DetourRestoreAfterWith();
 

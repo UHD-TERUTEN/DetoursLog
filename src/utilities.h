@@ -14,6 +14,8 @@ std::wstring ToWstring(const std::string& s);
 
 std::string ToUtf8String(const wchar_t* unicode, const size_t unicode_size);
 
+void InitLogger(const std::string& logPath);
+
 void Log(const nlohmann::json& json);
 
 void LogException(const std::exception& e);
