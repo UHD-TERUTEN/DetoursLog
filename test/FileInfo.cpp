@@ -24,7 +24,7 @@ TEST(FileInfoTest, MakeFileInfoOfThisFile)
     std::string creationTime = R"(2021‎-0‎3-0‎9 ‏‎오후 6:29)";
 
     EXPECT_STREQ(fileInfo.fileName.c_str(), absolute(R"(..\..\test\FileInfo.cpp)").string().c_str());
-    EXPECT_EQ(fileInfo.fileSize, 1417);
+    EXPECT_EQ(fileInfo.fileSize, 1510);
     EXPECT_STREQ(fileInfo.creationTime.c_str(), RemoveLTRMark(creationTime).c_str());
     EXPECT_FALSE(fileInfo.isHidden);
 }
@@ -48,6 +48,7 @@ TEST(FileInfoTest, GetFormatDateTimeOfThisFile)
     ASSERT_TRUE(ret);
 
     auto formatDateTime = GetFormatDateTime(creationTime);
+    std::string comparer = R"(2021‎-0‎3-0‎9 ‏‎오후 6:29)";
 
-    EXPECT_STREQ(formatDateTime.c_str(), "");
+    EXPECT_STREQ(formatDateTime.c_str(), RemoveLTRMark(comparer).c_str());
 }

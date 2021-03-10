@@ -4,20 +4,25 @@
 #include "../src/FileAccessInfo.h"
 #include <regex>
 #include <filesystem>
+#include <fstream>
+using namespace std::filesystem;
 
 TEST(UtilitiesTest, CanExecute)
 {
   FileInfo fileInfo{};
+  fileInfo.fileName = R"(DetoursLog.dll)";
+
   EXPECT_TRUE(IsExecutable(fileInfo));
 }
 
 TEST(UtilitiesTest, ConvertUtf8AndWstring)
 {
-  char* bytes = (char*)L"팔레트 (Feat. G-DRAGON)";
-  auto wstr = ToWstring(bytes);
-  auto utf8 = ToUtf8String(wstr.c_str(), 21);
+  char* bytes = "팔레트 (Feat. G-DRAGON)";
 
-  EXPECT_TRUE(utf8 == bytes);
+  auto wstr = ToWstring(bytes);
+  auto utf8 = ToUtf8String(wstr.c_str(), wstr.size());
+
+  EXPECT_STREQ(utf8.c_str(), bytes);
 }
 
 TEST(UtilitiesTest, LogToTempFile)
@@ -27,6 +32,19 @@ TEST(UtilitiesTest, LogToTempFile)
   nlohmann::json json({});
   Log(json);
   LogException(std::exception("test"));
+
+  std::ifstream log("temp_" + GetCurrentDateString() + R"(\test.exe.txt)");
+  std::string text{};
+  
+  std::getline(log, text);
+  EXPECT_STREQ(text.c_str(), "{}");
+
+  std::getline(log, text);
+  EXPECT_STREQ(text.c_str(), R"({"error occurred":["reason","test"]})");
+
+  log.close();
+  logger.close();
+  (void)remove_all("temp_" + GetCurrentDateString());
 }
 
 TEST(UtilitiesTest, GetJsonFileAccessInfo)
@@ -34,31 +52,31 @@ TEST(UtilitiesTest, GetJsonFileAccessInfo)
   FileAccessInfo fileAccessInfo = {"functionName", true, 1};
   nlohmann::json json({});
   json["fileAccessInfo"] = GetJson(fileAccessInfo);
-  
-  EXPECT_TRUE(json["fileAccessInfo"]["functionName"] == "functionName");
-  EXPECT_TRUE(json["fileAccessInfo"]["returnValue"]);
+
+  EXPECT_STREQ(json["fileAccessInfo"]["functionName"].get<std::string>().c_str(), "functionName");
+  EXPECT_EQ(json["fileAccessInfo"]["returnValue"], 1);
   EXPECT_EQ(json["fileAccessInfo"]["errorCode"], 1);
 }
 
 TEST(UtilitiesTest, ExtractFileExtension)
 {
-  EXPECT_TRUE("utilities.cpp"s == ".cpp");
-  EXPECT_TRUE("utilities.d.ts"s == ".ts");
-  EXPECT_TRUE(".gitignore"s == ".gitignore");
+  EXPECT_STREQ(GetFileExtension("utilities.cpp").c_str(),	".cpp");
+  EXPECT_STREQ(GetFileExtension("test.exe.txt").c_str(),	".txt");
+  EXPECT_STREQ(GetFileExtension(".gitignore").c_str(),		".gitignore");
 }
 
 TEST(UtilitiesTest, ValidDateString)
 { 
-  auto dateTime = GetCurrentDateString();
-  std::regex dateTimeRegex{ "" };
+  auto date = GetCurrentDateString();
+  std::regex dateTimeRegex{ R"(\d{4}-\d{2}-\d{2})" };
 
-  EXPECT_TRUE(std::regex_match(dateTime, dateTimeRegex));
+  EXPECT_TRUE(std::regex_match(date, dateTimeRegex));
 }
 
 TEST(UtilitiesTest, ValidLogDirectoryNameFormat)
 {
   std::string logPath = "./foo";
-  std::regex logDirectoryNameRegex{ logPath + "+" };
+  std::regex logDirectoryNameRegex{ logPath + R"(\d{4}-\d{2}-\d{2})" };
   auto logDirectoryName = GetLogDirectoryName(logPath);
 
   EXPECT_TRUE(std::regex_match(logDirectoryName, logDirectoryNameRegex));
@@ -66,26 +84,26 @@ TEST(UtilitiesTest, ValidLogDirectoryNameFormat)
 
 TEST(UtilitiesTest, ValidProgramNames)
 {
-  std::string programName = "";
-  std::string shorten = "";
+  std::string programName = absolute(R"(.\test.exe)").string();
+  std::string shorten = R"(\test.exe)";
 
-  EXPECT_TRUE(programName == GetCurrentProgramName());
-  EXPECT_TRUE(shorten == GetShortProgramName());
+  EXPECT_STREQ(programName.c_str(), GetCurrentProgramName());
+  EXPECT_STREQ(shorten.c_str(), GetShortProgramName().c_str());
 }
 
 TEST(UtilitiesTest, MakeDirectories)
 {
-  constexpr wchar_t* alreadyExists = L"./foo";
-  constexpr wchar_t* valid = L"./bar";
+  constexpr wchar_t* alreadyExists = LR"(.\foo)";
+  constexpr wchar_t* valid = LR"(.\bar)";
 
   (void)_wmkdir(alreadyExists);
 
   EXPECT_TRUE(IsDirectoryExists(alreadyExists));
-  EXPECT_FALSE(MakeDirectory(alreadyExists));
+  EXPECT_TRUE(MakeDirectory(alreadyExists));
 
   EXPECT_FALSE(IsDirectoryExists(valid));
   EXPECT_TRUE(MakeDirectory(valid));
 
-  (void)std::filesystem::remove(alreadyExists);
-  (void)std::filesystem::remove(valid);
+  (void)remove(alreadyExists);
+  (void)remove(valid);
 }
