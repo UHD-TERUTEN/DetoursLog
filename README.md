@@ -1,6 +1,9 @@
 # DetoursLog
 detours 라이브러리를 사용한 응용프로그램 로깅 DLL
 
+## GoogleTest
+![210310](https://user-images.githubusercontent.com/31408641/110594375-0c009200-81c0-11eb-9eab-cca43512a8fa.png)
+
 ## 사용법 (Detours sample [Setdll](https://github.com/microsoft/Detours/wiki/SampleSetdll) 사용 시)
 1. 'x64 Native Tools Command Prompt for VS 2019'를 관리자 권한으로 실행
 2. `setdll.exe /d:<디렉토리 경로>\DetoursLog.dll "C:\Program Files\Microsoft Office\root\Office16\WINWORD.EXE"` 실행 (MS Word)
