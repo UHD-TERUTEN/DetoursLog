@@ -1,5 +1,6 @@
 #include "utilities.h"
 
+#include <cstdlib>
 #include <mutex>
 
 static std::string GetFileExtension(const std::string& s)
@@ -12,21 +13,6 @@ static std::string GetFileExtension(const std::string& s)
         return extension;
     }
     return "";
-}
-
-static std::string GetCurrentDateString()
-{
-    SYSTEMTIME st{};
-    TCHAR timeString[11]{};
-
-    GetSystemTime(&st);
-    GetDateFormat(LOCALE_USER_DEFAULT, DATE_SHORTDATE, &st, NULL, timeString, 11);
-    return std::string{ timeString, timeString + 10 };
-}
-
-static std::string GetLogDirectoryName(const std::string& logPath)
-{
-    return logPath + GetCurrentDateString();
 }
 
 static char* GetCurrentProgramName()
@@ -44,6 +30,13 @@ static std::string GetShortProgramName()
     if (pos == std::string::npos)
         return "";
     return programName.substr(pos);
+}
+
+static std::string GetLogDirectoryName()
+{
+    if (const char* applicationRoot = std::getenv("LOGGATHERERROOT"))
+        return std::string(applicationRoot) + R"(\Logs)";
+    return R"(C:\DetoursLog\Logs)";
 }
 
 static bool IsDirectoryExists(const std::wstring& directoryName)
@@ -148,9 +141,9 @@ std::string ToUtf8String(const wchar_t* unicode, const size_t unicode_size)
     return utf8;
 }
 
-void InitLogger(const std::string& logPath)
+void InitLogger()
 {
-    auto logDirectoryName = GetLogDirectoryName(logPath);
+    auto logDirectoryName = GetLogDirectoryName();
     MakeDirectory(ToWstring(logDirectoryName));
 
     logger.open(logDirectoryName + GetShortProgramName() + ".txt"s, std::ios_base::app);
