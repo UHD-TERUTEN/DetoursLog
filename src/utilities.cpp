@@ -1,6 +1,8 @@
 #include "utilities.h"
 
+#include <cstdlib>
 #include <mutex>
+#include <algorithm>
 
 static std::string GetFileExtension(const std::string& s)
 {
@@ -12,21 +14,6 @@ static std::string GetFileExtension(const std::string& s)
         return extension;
     }
     return "";
-}
-
-static std::string GetCurrentDateString()
-{
-    SYSTEMTIME st{};
-    TCHAR timeString[11]{};
-
-    GetSystemTime(&st);
-    GetDateFormat(LOCALE_USER_DEFAULT, DATE_SHORTDATE, &st, NULL, timeString, 11);
-    return std::string{ timeString, timeString + 10 };
-}
-
-static std::string GetLogDirectoryName(const std::string& logPath)
-{
-    return logPath + GetCurrentDateString();
 }
 
 static char* GetCurrentProgramName()
@@ -46,32 +33,12 @@ static std::string GetShortProgramName()
     return programName.substr(pos);
 }
 
-static bool IsDirectoryExists(const std::wstring& directoryName)
+static std::string GetLogDirectoryName()
 {
-    auto attr = GetFileAttributes(directoryName.c_str());
-    if (attr == INVALID_FILE_ATTRIBUTES)
-        return false;
-    return (attr & FILE_ATTRIBUTE_DIRECTORY);
+    if (const char* applicationRoot = std::getenv("LogGathererRoot"))
+        return std::string(applicationRoot) + R"(\Logs)";
+    return R"(C:\DetoursLog\Logs)";
 }
-
-static bool MakeDirectory(const std::wstring& directoryName)
-{
-    std::wstring subdirectoryName{};
-    size_t pos = directoryName.find('\\') + 1;
-    int result = 0;
-
-    while ((pos = directoryName.find('\\', pos)) != std::wstring::npos)
-    {
-        subdirectoryName = directoryName.substr(0, pos);
-        if (!IsDirectoryExists(subdirectoryName))
-            (void)_wmkdir(subdirectoryName.c_str());
-        ++pos;
-    }
-    if (!IsDirectoryExists(directoryName))
-        result = _wmkdir(directoryName.c_str());
-    return (result == 0);
-}
-
 
 bool IsExecutable(const FileInfo& fileInfo)
 {
@@ -148,11 +115,13 @@ std::string ToUtf8String(const wchar_t* unicode, const size_t unicode_size)
     return utf8;
 }
 
-void InitLogger(const std::string& logPath)
-{
-    auto logDirectoryName = GetLogDirectoryName(logPath);
-    MakeDirectory(ToWstring(logDirectoryName));
+#include <filesystem>
 
+void InitLogger()
+{
+    auto logDirectoryName = GetLogDirectoryName();
+
+    std::filesystem::create_directories(logDirectoryName);
     logger.open(logDirectoryName + GetShortProgramName() + ".txt"s, std::ios_base::app);
 }
 

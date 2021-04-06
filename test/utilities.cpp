@@ -5,6 +5,7 @@
 #include <regex>
 #include <filesystem>
 #include <fstream>
+#include <stdlib.h>
 using namespace std::filesystem;
 
 TEST(UtilitiesTest, CanExecute)
@@ -27,13 +28,13 @@ TEST(UtilitiesTest, ConvertUtf8AndWstring)
 
 TEST(UtilitiesTest, LogToTempFile)
 {
-  InitLogger("temp_");
+  InitLogger();
   
   nlohmann::json json({});
   Log(json);
   LogException(std::exception("test"));
 
-  std::ifstream log("temp_" + GetCurrentDateString() + R"(\test.exe.txt)");
+  std::ifstream log(GetLogDirectoryName() + GetShortProgramName() + ".txt"s);
   std::string text{};
   
   std::getline(log, text);
@@ -44,7 +45,7 @@ TEST(UtilitiesTest, LogToTempFile)
 
   log.close();
   logger.close();
-  (void)remove_all("temp_" + GetCurrentDateString());
+  (void)remove_all(GetLogDirectoryName());
 }
 
 TEST(UtilitiesTest, GetJsonFileAccessInfo)
@@ -65,23 +66,6 @@ TEST(UtilitiesTest, ExtractFileExtension)
   EXPECT_STREQ(GetFileExtension(".gitignore").c_str(),		".gitignore");
 }
 
-TEST(UtilitiesTest, ValidDateString)
-{ 
-  auto date = GetCurrentDateString();
-  std::regex dateTimeRegex{ R"(\d{4}-\d{2}-\d{2})" };
-
-  EXPECT_TRUE(std::regex_match(date, dateTimeRegex));
-}
-
-TEST(UtilitiesTest, ValidLogDirectoryNameFormat)
-{
-  std::string logPath = "./foo";
-  std::regex logDirectoryNameRegex{ logPath + R"(\d{4}-\d{2}-\d{2})" };
-  auto logDirectoryName = GetLogDirectoryName(logPath);
-
-  EXPECT_TRUE(std::regex_match(logDirectoryName, logDirectoryNameRegex));
-}
-
 TEST(UtilitiesTest, ValidProgramNames)
 {
   std::string programName = absolute(R"(.\test.exe)").string();
@@ -89,21 +73,4 @@ TEST(UtilitiesTest, ValidProgramNames)
 
   EXPECT_STREQ(programName.c_str(), GetCurrentProgramName());
   EXPECT_STREQ(shorten.c_str(), GetShortProgramName().c_str());
-}
-
-TEST(UtilitiesTest, MakeDirectories)
-{
-  constexpr wchar_t* alreadyExists = LR"(.\foo)";
-  constexpr wchar_t* valid = LR"(.\bar)";
-
-  (void)_wmkdir(alreadyExists);
-
-  EXPECT_TRUE(IsDirectoryExists(alreadyExists));
-  EXPECT_TRUE(MakeDirectory(alreadyExists));
-
-  EXPECT_FALSE(IsDirectoryExists(valid));
-  EXPECT_TRUE(MakeDirectory(valid));
-
-  (void)remove(alreadyExists);
-  (void)remove(valid);
 }
