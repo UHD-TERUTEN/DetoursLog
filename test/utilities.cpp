@@ -74,20 +74,3 @@ TEST(UtilitiesTest, ValidProgramNames)
   EXPECT_STREQ(programName.c_str(), GetCurrentProgramName());
   EXPECT_STREQ(shorten.c_str(), GetShortProgramName().c_str());
 }
-
-TEST(UtilitiesTest, MakeDirectories)
-{
-  constexpr wchar_t* alreadyExists = LR"(.\foo)";
-  constexpr wchar_t* valid = LR"(.\bar)";
-
-  (void)_wmkdir(alreadyExists);
-
-  EXPECT_TRUE(IsDirectoryExists(alreadyExists));
-  EXPECT_TRUE(MakeDirectory(alreadyExists));
-
-  EXPECT_FALSE(IsDirectoryExists(valid));
-  EXPECT_TRUE(MakeDirectory(valid));
-
-  (void)remove(alreadyExists);
-  (void)remove(valid);
-}

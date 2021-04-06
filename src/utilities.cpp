@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <mutex>
+#include <algorithm>
 
 static std::string GetFileExtension(const std::string& s)
 {
@@ -34,37 +35,10 @@ static std::string GetShortProgramName()
 
 static std::string GetLogDirectoryName()
 {
-    if (const char* applicationRoot = std::getenv("LOGGATHERERROOT"))
+    if (const char* applicationRoot = std::getenv("LogGathererRoot"))
         return std::string(applicationRoot) + R"(\Logs)";
     return R"(C:\DetoursLog\Logs)";
 }
-
-static bool IsDirectoryExists(const std::wstring& directoryName)
-{
-    auto attr = GetFileAttributes(directoryName.c_str());
-    if (attr == INVALID_FILE_ATTRIBUTES)
-        return false;
-    return (attr & FILE_ATTRIBUTE_DIRECTORY);
-}
-
-static bool MakeDirectory(const std::wstring& directoryName)
-{
-    std::wstring subdirectoryName{};
-    size_t pos = directoryName.find('\\') + 1;
-    int result = 0;
-
-    while ((pos = directoryName.find('\\', pos)) != std::wstring::npos)
-    {
-        subdirectoryName = directoryName.substr(0, pos);
-        if (!IsDirectoryExists(subdirectoryName))
-            (void)_wmkdir(subdirectoryName.c_str());
-        ++pos;
-    }
-    if (!IsDirectoryExists(directoryName))
-        result = _wmkdir(directoryName.c_str());
-    return (result == 0);
-}
-
 
 bool IsExecutable(const FileInfo& fileInfo)
 {
@@ -141,11 +115,13 @@ std::string ToUtf8String(const wchar_t* unicode, const size_t unicode_size)
     return utf8;
 }
 
+#include <filesystem>
+
 void InitLogger()
 {
     auto logDirectoryName = GetLogDirectoryName();
-    MakeDirectory(ToWstring(logDirectoryName));
 
+    std::filesystem::create_directories(logDirectoryName);
     logger.open(logDirectoryName + GetShortProgramName() + ".txt"s, std::ios_base::app);
 }
 
