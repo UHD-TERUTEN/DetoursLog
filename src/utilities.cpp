@@ -129,7 +129,7 @@ std::mutex mutex{};
 
 void Log(const nlohmann::json& json)
 {
-    const std::lock_guard<std::mutex> lock(mutex);
+    std::lock_guard<std::mutex> lock(mutex);
     logger << json << std::endl;
 }
 
