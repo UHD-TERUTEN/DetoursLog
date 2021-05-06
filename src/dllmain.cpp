@@ -63,7 +63,7 @@ using PWriteFile = NTSTATUS (*)(
 static PCreateFile TrueNtCreateFile = (PCreateFile)DetourFindFunction("ntdll.dll", "NtCreateFile");
 static POpenFile TrueNtOpenFile = (POpenFile)DetourFindFunction("ntdll.dll", "NtOpenFile");
 static PReadFile TrueNtReadFile = (PReadFile)DetourFindFunction("ntdll.dll", "NtReadFile");
-static PWriteFile TrueNtWriteFile = (PWriteFile)DetourFindFunction("ntdll.dll", "NtWriteFile");
+PWriteFile TrueNtWriteFile = (PWriteFile)DetourFindFunction("ntdll.dll", "NtWriteFile");
 
 // ZW functions
 //
@@ -72,7 +72,7 @@ static POpenFile TrueZwOpenFile = (POpenFile)DetourFindFunction("ntdll.dll", "Zw
 static PReadFile TrueZwReadFile = (PReadFile)DetourFindFunction("ntdll.dll", "ZwReadFile");
 static PWriteFile TrueZwWriteFile = (PWriteFile)DetourFindFunction("ntdll.dll", "ZwWriteFile");
 
-std::ofstream logger{};
+HANDLE logger{};
 
 static void WriteLog(HANDLE FileHandle, const char* functionName, NTSTATUS ret)
 {
@@ -95,12 +95,6 @@ static void WriteLog(HANDLE FileHandle, const char* functionName, NTSTATUS ret)
             }
         }
         Log(json);
-
-        if (logger.bad())
-        {
-            logger.clear();
-            Log({ { "state", logger.rdstate() } });
-        }
     }
     catch (std::exception& e)
     {
