@@ -19,21 +19,21 @@ TEST(ModuleInfoTest, MakeModuleInfoOfThisFile)
 
 TEST(ModuleInfoTest, MakeModuleInfoOfDll)
 {
-  auto moduleInfo = MakeModuleInfo(R"(DetoursLog.dll)");
+  auto moduleInfo = MakeModuleInfo(R"(DetoursLog64.dll)");
 
   EXPECT_STREQ(moduleInfo.companyName.c_str(),      "UHD-TERUTEN");
   EXPECT_STREQ(moduleInfo.fileDescription.c_str(),  "DetoursLog");
-  EXPECT_STREQ(moduleInfo.fileVersion.c_str(),      "1.3.0.0");
+  EXPECT_STREQ(moduleInfo.fileVersion.c_str(),      "1.5.1.0");
   EXPECT_STREQ(moduleInfo.internalName.c_str(),     "DetoursLog.dll");
   EXPECT_STREQ(moduleInfo.legalCopyright.c_str(),   "Copyright (C) 2021");
   EXPECT_STREQ(moduleInfo.originalFilename.c_str(), "DetoursLog.dll");
   EXPECT_STREQ(moduleInfo.productName.c_str(),      "DetoursLog");
-  EXPECT_STREQ(moduleInfo.productVersion.c_str(),   "1.3.0.0");
+  EXPECT_STREQ(moduleInfo.productVersion.c_str(),   "1.5.1.0");
 }
 
 TEST(ModuleInfoTest, GetKoreanCodePage)
 {
-  constexpr char* fileName = R"(DetoursLog.dll)";
+  constexpr char* fileName = R"(DetoursLog64.dll)";
   
   auto bufsize = GetFileVersionInfoSizeA(fileName, NULL);
 
@@ -51,7 +51,7 @@ TEST(ModuleInfoTest, GetKoreanCodePage)
 
 TEST(ModuleInfoTest, GetFileVersionInfos)
 {
-  constexpr char* fileName = R"(DetoursLog.dll)";
+  constexpr char* fileName = R"(DetoursLog64.dll)";
   
   auto bufsize = GetFileVersionInfoSizeA(fileName, NULL);
 

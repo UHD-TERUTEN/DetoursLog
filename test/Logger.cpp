@@ -1,21 +1,26 @@
 #include "pch.h"
 #include "../src/Logger.h"
-using namespace std::literals::string_literals;
+#include "../src/utilities.h"
 
-std::ofstream logger{};
+#include <fstream>
 
-TEST(LoggerTest, LogToTempFile)
+HANDLE logger{};
+
+TEST(LoggerTest, LogTest)
 {
-  logger.open("temp");
-  logger << "test";
-  logger.close();
+  InitLogger();
+  Log({ { "foo", "bar" } });
 
-  std::ifstream temp("temp");
-  char buffer[5]{};
-  temp.read(buffer, 5);
+  std::string loggerRoot = std::getenv("LogGathererRoot");
+  auto filename = loggerRoot + R"(\Logs\test.exe.txt)";
 
-  EXPECT_TRUE("test"s == buffer);
+  std::ifstream temp(filename);
+  char buffer[14]{};
+  temp.read(buffer, 14);
+
+  EXPECT_STREQ("{\"foo\":\"bar\"}\n", buffer);
 
   temp.close();
-  std::remove("temp");
+  ASSERT_TRUE(CloseHandle(logger));
+  ASSERT_EQ(0, std::remove(filename.c_str()));
 }

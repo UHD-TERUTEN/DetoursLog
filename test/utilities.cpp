@@ -2,11 +2,41 @@
 #include "../src/utilities.h"
 #include "../src/utilities.cpp"
 #include "../src/FileAccessInfo.h"
-#include <regex>
+
 #include <filesystem>
-#include <fstream>
-#include <stdlib.h>
 using namespace std::filesystem;
+
+#include <regex>
+#include <fstream>
+using namespace std::literals::string_literals;
+
+#include <stdlib.h>
+#include <winternl.h>
+
+#include <nlohmann/json.hpp>
+#include <detours.h>
+
+using PWriteFile = BOOL(WINAPI*)(
+    HANDLE       hFile,
+    LPCVOID      lpBuffer,
+    DWORD        nNumberOfBytesToWrite,
+    LPDWORD      lpNumberOfBytesWritten,
+    LPOVERLAPPED lpOverlapped
+    );
+using PNativeWriteFile = NTSTATUS(*)(
+    HANDLE           FileHandle,
+    HANDLE           Event,
+    PIO_APC_ROUTINE  ApcRoutine,
+    PVOID            ApcContext,
+    PIO_STATUS_BLOCK IoStatusBlock,
+    PVOID            Buffer,
+    ULONG            Length,
+    PLARGE_INTEGER   ByteOffset,
+    PULONG           Key
+    );
+PWriteFile TrueWriteFile = WriteFile;
+PNativeWriteFile TrueNtWriteFile = (PNativeWriteFile)DetourFindFunction("ntdll.dll", "NtWriteFile");
+bool hasNtdll = false;
 
 TEST(UtilitiesTest, CanExecute)
 {
@@ -33,8 +63,10 @@ TEST(UtilitiesTest, LogToTempFile)
   nlohmann::json json({});
   Log(json);
   LogException(std::exception("test"));
-
-  std::ifstream log(GetLogDirectoryName() + GetShortProgramName() + ".txt"s);
+  
+  auto filename = GetLogDirectoryName() + GetShortProgramName() + ".txt"s;
+  EXPECT_STREQ(filename.c_str(), R"(C:\Users\lhs14\AppData\Local\LogGatherer\Logs\test.exe.txt)");
+  std::ifstream log(filename);
   std::string text{};
   
   std::getline(log, text);
@@ -44,8 +76,8 @@ TEST(UtilitiesTest, LogToTempFile)
   EXPECT_STREQ(text.c_str(), R"({"error occurred":["reason","test"]})");
 
   log.close();
-  logger.close();
-  (void)remove_all(GetLogDirectoryName());
+  ASSERT_TRUE(CloseHandle(logger));
+  ASSERT_EQ(0, std::remove(filename.c_str()));
 }
 
 TEST(UtilitiesTest, GetJsonFileAccessInfo)
