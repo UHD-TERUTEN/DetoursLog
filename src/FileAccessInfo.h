@@ -21,5 +21,5 @@ namespace LogData
 		returnValue,
 		errorCode
 	);
-	FileAccessInfo MakeFileAccessInfo(const std::string& functionName, NTSTATUS returnValue);
+	FileAccessInfo MakeFileAccessInfo(const std::string& functionName, int returnValue);
 }

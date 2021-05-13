@@ -116,23 +116,16 @@ std::string ToUtf8String(const wchar_t* unicode, const size_t unicode_size)
 }
 
 #include <filesystem>
-
-void InitLogger()
-{
-    auto logDirectoryName = GetLogDirectoryName();
-
-    std::filesystem::create_directories(logDirectoryName);
-    logger = CreateFileA(   (logDirectoryName + GetShortProgramName() + ".txt"s).c_str(),
-                            FILE_APPEND_DATA,
-                            FILE_SHARE_READ,
-                            NULL,
-                            OPEN_ALWAYS,
-                            FILE_ATTRIBUTE_NORMAL,
-                            NULL);
-}
-
 #include <winternl.h>
-using PWriteFile = NTSTATUS(*)(
+
+using PWriteFile = BOOL(WINAPI*)(
+    HANDLE       hFile,
+    LPCVOID      lpBuffer,
+    DWORD        nNumberOfBytesToWrite,
+    LPDWORD      lpNumberOfBytesWritten,
+    LPOVERLAPPED lpOverlapped
+    );
+using PNativeWriteFile = NTSTATUS(*)(
     HANDLE           FileHandle,
     HANDLE           Event,
     PIO_APC_ROUTINE  ApcRoutine,
@@ -143,16 +136,40 @@ using PWriteFile = NTSTATUS(*)(
     PLARGE_INTEGER   ByteOffset,
     PULONG           Key
     );
-extern PWriteFile TrueNtWriteFile;
+extern PWriteFile TrueWriteFile;
+extern PNativeWriteFile TrueNtWriteFile;
+extern bool hasNtdll;
 
 std::mutex mutex{};
+
+void InitLogger()
+{
+    auto logDirectoryName = GetLogDirectoryName();
+
+    std::filesystem::create_directories(logDirectoryName);
+    logger = CreateFileA((logDirectoryName + GetShortProgramName() + ".txt"s).c_str(),
+        FILE_APPEND_DATA,
+        FILE_SHARE_READ,
+        NULL,
+        OPEN_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL);
+}
 
 void Log(const nlohmann::json& json)
 {
     std::lock_guard<std::mutex> lock(mutex);
-    IO_STATUS_BLOCK io;
     auto text = json.dump() + "\n";
-    (void)TrueNtWriteFile(logger, NULL, NULL, NULL, &io, (PVOID)text.c_str(), (ULONG)text.length(), 0, NULL);
+
+    if (hasNtdll)
+    {
+        IO_STATUS_BLOCK io;
+        (void)TrueNtWriteFile(logger, NULL, NULL, NULL, &io, (PVOID)text.c_str(), (ULONG)text.length(), 0, NULL);
+    }
+    else
+    {
+        (void)TrueWriteFile(logger, (PVOID)text.c_str(), (ULONG)text.length(), 0, NULL);
+    }
 }
 
 void LogException(const std::exception& e)

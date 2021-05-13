@@ -14,7 +14,53 @@ using namespace LogData;
 #include <detours.h>
 #include <winternl.h>
 
-using PCreateFile = NTSTATUS (*)(
+using PCreateFileA = HANDLE (WINAPI*)(
+    LPCSTR                lpFileName,
+    DWORD                 dwDesiredAccess,
+    DWORD                 dwShareMode,
+    LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+    DWORD                 dwCreationDisposition,
+    DWORD                 dwFlagsAndAttributes,
+    HANDLE                hTemplateFile
+);
+using PCreateFileW = HANDLE (WINAPI*)(
+    LPCWSTR               lpFileName,
+    DWORD                 dwDesiredAccess,
+    DWORD                 dwShareMode,
+    LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+    DWORD                 dwCreationDisposition,
+    DWORD                 dwFlagsAndAttributes,
+    HANDLE                hTemplateFile
+);
+using PReadFile = BOOL (WINAPI*)(
+    HANDLE       hFile,
+    LPVOID       lpBuffer,
+    DWORD        nNumberOfBytesToRead,
+    LPDWORD      lpNumberOfBytesRead,
+    LPOVERLAPPED lpOverlapped
+);
+using PReadFileEx = BOOL (WINAPI*)(
+    HANDLE                          hFile,
+    LPVOID                          lpBuffer,
+    DWORD                           nNumberOfBytesToRead,
+    LPOVERLAPPED                    lpOverlapped,
+    LPOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine
+);
+using PWriteFile = BOOL (WINAPI*)(
+    HANDLE       hFile,
+    LPCVOID      lpBuffer,
+    DWORD        nNumberOfBytesToWrite,
+    LPDWORD      lpNumberOfBytesWritten,
+    LPOVERLAPPED lpOverlapped
+);
+using PWriteFileEx = BOOL (WINAPI*)(
+    HANDLE                          hFile,
+    LPCVOID                         lpBuffer,
+    DWORD                           nNumberOfBytesToWrite,
+    LPOVERLAPPED                    lpOverlapped,
+    LPOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine
+);
+using PNativeCreateFile = NTSTATUS (*)(
     PHANDLE            FileHandle,
     ACCESS_MASK        DesiredAccess,
     POBJECT_ATTRIBUTES ObjectAttributes,
@@ -27,7 +73,7 @@ using PCreateFile = NTSTATUS (*)(
     PVOID              EaBuffer,
     ULONG              EaLength
 );
-using POpenFile = NTSTATUS (*)(
+using PNativeOpenFile = NTSTATUS (*)(
     PHANDLE            FileHandle,
     ACCESS_MASK        DesiredAccess,
     POBJECT_ATTRIBUTES ObjectAttributes,
@@ -35,7 +81,7 @@ using POpenFile = NTSTATUS (*)(
     ULONG              ShareAccess,
     ULONG              OpenOptions
 );
-using PReadFile = NTSTATUS(*)(
+using PNativeReadFile = NTSTATUS(*)(
     HANDLE           FileHandle,
     HANDLE           Event,
     PIO_APC_ROUTINE  ApcRoutine,
@@ -46,7 +92,7 @@ using PReadFile = NTSTATUS(*)(
     PLARGE_INTEGER   ByteOffset,
     PULONG           Key
 );
-using PWriteFile = NTSTATUS (*)(
+using PNativeWriteFile = NTSTATUS (*)(
     HANDLE           FileHandle,
     HANDLE           Event,
     PIO_APC_ROUTINE  ApcRoutine,
@@ -57,24 +103,36 @@ using PWriteFile = NTSTATUS (*)(
     PLARGE_INTEGER   ByteOffset,
     PULONG           Key
 );
+
+// Windows APIs
+       PCreateFileA TrueCreateFileA = CreateFileA;
+static PCreateFileW TrueCreateFileW = CreateFileW;
+static PReadFile TrueReadFile = ReadFile;
+static PReadFileEx TrueReadFileEx = ReadFileEx;
+       PWriteFile TrueWriteFile = WriteFile;
+static PWriteFileEx TrueWriteFileEx = WriteFileEx;
 
 // NT functions
 //
-static PCreateFile TrueNtCreateFile = (PCreateFile)DetourFindFunction("ntdll.dll", "NtCreateFile");
-static POpenFile TrueNtOpenFile = (POpenFile)DetourFindFunction("ntdll.dll", "NtOpenFile");
-static PReadFile TrueNtReadFile = (PReadFile)DetourFindFunction("ntdll.dll", "NtReadFile");
-PWriteFile TrueNtWriteFile = (PWriteFile)DetourFindFunction("ntdll.dll", "NtWriteFile");
+static PNativeCreateFile TrueNtCreateFile = (PNativeCreateFile)DetourFindFunction("ntdll.dll", "NtCreateFile");
+static PNativeOpenFile TrueNtOpenFile = (PNativeOpenFile)DetourFindFunction("ntdll.dll", "NtOpenFile");
+static PNativeReadFile TrueNtReadFile = (PNativeReadFile)DetourFindFunction("ntdll.dll", "NtReadFile");
+       PNativeWriteFile TrueNtWriteFile = (PNativeWriteFile)DetourFindFunction("ntdll.dll", "NtWriteFile");
 
 // ZW functions
 //
-static PCreateFile TrueZwCreateFile = (PCreateFile)DetourFindFunction("ntdll.dll", "ZwCreateFile");
-static POpenFile TrueZwOpenFile = (POpenFile)DetourFindFunction("ntdll.dll", "ZwOpenFile");
-static PReadFile TrueZwReadFile = (PReadFile)DetourFindFunction("ntdll.dll", "ZwReadFile");
-static PWriteFile TrueZwWriteFile = (PWriteFile)DetourFindFunction("ntdll.dll", "ZwWriteFile");
+static PNativeCreateFile TrueZwCreateFile = (PNativeCreateFile)DetourFindFunction("ntdll.dll", "ZwCreateFile");
+static PNativeOpenFile TrueZwOpenFile = (PNativeOpenFile)DetourFindFunction("ntdll.dll", "ZwOpenFile");
+static PNativeReadFile TrueZwReadFile = (PNativeReadFile)DetourFindFunction("ntdll.dll", "ZwReadFile");
+static PNativeWriteFile TrueZwWriteFile = (PNativeWriteFile)DetourFindFunction("ntdll.dll", "ZwWriteFile");
 
 HANDLE logger{};
 
-static void WriteLog(HANDLE FileHandle, const char* functionName, NTSTATUS ret)
+static std::string prevFunction{};
+static std::string prevFileName{};
+static HANDLE prevFileHandle = NULL;
+
+static void WriteLog(HANDLE FileHandle, const char* functionName, int ret)
 {
     try
     {
@@ -100,6 +158,188 @@ static void WriteLog(HANDLE FileHandle, const char* functionName, NTSTATUS ret)
     {
         LogException(e);
     }
+}
+
+static void WriteLog(std::string fileName, const char* functionName, NTSTATUS ret)
+{
+    try
+    {
+        nlohmann::json json({});
+        {
+            auto fileAccessInfo = MakeFileAccessInfo(functionName, ret);
+            json["fileAccessInfo"] = GetJson(fileAccessInfo);
+        }
+        {
+            auto fileInfo = MakeFileInfo(fileName);
+            json["fileInfo"] = GetJson(fileInfo);
+        }
+        Log(json);
+    }
+    catch (std::exception& e)
+    {
+        LogException(e);
+    }
+}
+
+// Windows APIs
+__declspec(dllexport)
+HANDLE WINAPI DetouredCreateFileA(
+    LPCSTR                lpFileName,
+    DWORD                 dwDesiredAccess,
+    DWORD                 dwShareMode,
+    LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+    DWORD                 dwCreationDisposition,
+    DWORD                 dwFlagsAndAttributes,
+    HANDLE                hTemplateFile
+)
+{
+    auto ret = TrueCreateFileA(
+        lpFileName,
+        dwDesiredAccess,
+        dwShareMode,
+        lpSecurityAttributes,
+        dwCreationDisposition,
+        dwFlagsAndAttributes,
+        hTemplateFile
+    );
+    if (prevFunction != __FUNCTION__ && prevFileName != lpFileName)
+    {
+        WriteLog(lpFileName, __FUNCTION__, ret != NULL);
+        prevFunction = __FUNCTION__;
+        prevFileName = lpFileName;
+    }
+    //WriteLog(lpFileName, __FUNCTION__, ret != NULL);
+    return ret;
+}
+
+HANDLE WINAPI DetouredCreateFileW(
+    LPCWSTR               lpFileName,
+    DWORD                 dwDesiredAccess,
+    DWORD                 dwShareMode,
+    LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+    DWORD                 dwCreationDisposition,
+    DWORD                 dwFlagsAndAttributes,
+    HANDLE                hTemplateFile
+)
+{
+    auto ret = TrueCreateFileW(
+        lpFileName,
+        dwDesiredAccess,
+        dwShareMode,
+        lpSecurityAttributes,
+        dwCreationDisposition,
+        dwFlagsAndAttributes,
+        hTemplateFile
+    );
+    auto fileName = ToUtf8String(lpFileName, wcslen(lpFileName));
+    if (prevFunction != __FUNCTION__ && prevFileName != fileName)
+    {
+        WriteLog(fileName, __FUNCTION__, ret != NULL);
+        prevFunction = __FUNCTION__;
+        prevFileName = fileName;
+    }
+    //WriteLog(fileName, __FUNCTION__, ret != NULL);
+    return ret;
+}
+
+BOOL WINAPI DetouredReadFile(
+    HANDLE       hFile,
+    LPVOID       lpBuffer,
+    DWORD        nNumberOfBytesToRead,
+    LPDWORD      lpNumberOfBytesRead,
+    LPOVERLAPPED lpOverlapped
+)
+{
+    auto ret = TrueReadFile(
+        hFile,
+        lpBuffer,
+        nNumberOfBytesToRead,
+        lpNumberOfBytesRead,
+        lpOverlapped
+    );
+    if (prevFunction != __FUNCTION__ && prevFileHandle != hFile)
+    {
+        WriteLog(hFile, __FUNCTION__, ret);
+        prevFunction = __FUNCTION__;
+        prevFileHandle = hFile;
+    }
+    //WriteLog(hFile, __FUNCTION__, ret);
+    return ret;
+}
+
+BOOL WINAPI DetouredReadFileEx(
+    HANDLE                          hFile,
+    LPVOID                          lpBuffer,
+    DWORD                           nNumberOfBytesToRead,
+    LPOVERLAPPED                    lpOverlapped,
+    LPOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine
+)
+{
+    auto ret = TrueReadFileEx(
+        hFile,
+        lpBuffer,
+        nNumberOfBytesToRead,
+        lpOverlapped,
+        lpCompletionRoutine
+    );
+    if (prevFunction != __FUNCTION__ && prevFileHandle != hFile)
+    {
+        WriteLog(hFile, __FUNCTION__, ret);
+        prevFunction = __FUNCTION__;
+        prevFileHandle = hFile;
+    }
+    //WriteLog(hFile, __FUNCTION__, ret);
+    return ret;
+}
+
+BOOL WINAPI DetouredWriteFile(
+    HANDLE       hFile,
+    LPCVOID      lpBuffer,
+    DWORD        nNumberOfBytesToWrite,
+    LPDWORD      lpNumberOfBytesWritten,
+    LPOVERLAPPED lpOverlapped
+)
+{
+    auto ret = TrueWriteFile(
+        hFile,
+        lpBuffer,
+        nNumberOfBytesToWrite,
+        lpNumberOfBytesWritten,
+        lpOverlapped
+    );
+    if (prevFunction != __FUNCTION__ && prevFileHandle != hFile)
+    {
+        WriteLog(hFile, __FUNCTION__, ret);
+        prevFunction = __FUNCTION__;
+        prevFileHandle = hFile;
+    }
+    //WriteLog(hFile, __FUNCTION__, ret);
+    return ret;
+}
+
+BOOL WINAPI DetouredWriteFileEx(
+    HANDLE                          hFile,
+    LPCVOID                         lpBuffer,
+    DWORD                           nNumberOfBytesToWrite,
+    LPOVERLAPPED                    lpOverlapped,
+    LPOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine
+)
+{
+    auto ret = TrueWriteFileEx(
+        hFile,
+        lpBuffer,
+        nNumberOfBytesToWrite,
+        lpOverlapped,
+        lpCompletionRoutine
+    );
+    if (prevFunction != __FUNCTION__ && prevFileHandle != hFile)
+    {
+        WriteLog(hFile, __FUNCTION__, ret);
+        prevFunction = __FUNCTION__;
+        prevFileHandle = hFile;
+    }
+    //WriteLog(hFile, __FUNCTION__, ret);
+    return ret;
 }
 
 // NT functions
@@ -343,12 +583,29 @@ NTSTATUS DetouredZwWriteFile
     return ret;
 }
 
+static bool HasNtdll()
+{
+    static const char* ntdll = "ntdll.dll";
+
+    for (HMODULE hModule = NULL; (hModule = DetourEnumerateModules(hModule)) != NULL;)
+    {
+        char moduleName[MAX_PATH] = { 0 };
+        if (GetModuleFileNameA(hModule, moduleName, sizeof(moduleName) - 1)
+            && !std::strcmp(moduleName, ntdll))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool hasNtdll = HasNtdll();
+
 void WINAPI ProcessAttach(  HMODULE hModule,
                             DWORD   ul_reason_for_call,
                             LPVOID  lpReserved)
 {
     InitLogger();
-    Log({ { "ProcessAttach", "Init" } });
 
     DetourRestoreAfterWith();
 
@@ -357,16 +614,27 @@ void WINAPI ProcessAttach(  HMODULE hModule,
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
 
-    DetourAttach(&(PVOID&)TrueNtCreateFile, DetouredNtCreateFile);
-    DetourAttach(&(PVOID&)TrueNtOpenFile, DetouredNtOpenFile);
-    DetourAttach(&(PVOID&)TrueNtReadFile, DetouredNtReadFile);
-    DetourAttach(&(PVOID&)TrueNtWriteFile, DetouredNtWriteFile);
+    if (HasNtdll())
+    {
+        DetourAttach(&(PVOID&)TrueNtCreateFile, DetouredNtCreateFile);
+        DetourAttach(&(PVOID&)TrueNtOpenFile, DetouredNtOpenFile);
+        DetourAttach(&(PVOID&)TrueNtReadFile, DetouredNtReadFile);
+        DetourAttach(&(PVOID&)TrueNtWriteFile, DetouredNtWriteFile);
 
-    DetourAttach(&(PVOID&)TrueZwCreateFile, DetouredZwCreateFile);
-    DetourAttach(&(PVOID&)TrueZwOpenFile, DetouredZwOpenFile);
-    DetourAttach(&(PVOID&)TrueZwReadFile, DetouredZwReadFile);
-    DetourAttach(&(PVOID&)TrueZwWriteFile, DetouredZwWriteFile);
-
+        DetourAttach(&(PVOID&)TrueZwCreateFile, DetouredZwCreateFile);
+        DetourAttach(&(PVOID&)TrueZwOpenFile, DetouredZwOpenFile);
+        DetourAttach(&(PVOID&)TrueZwReadFile, DetouredZwReadFile);
+        DetourAttach(&(PVOID&)TrueZwWriteFile, DetouredZwWriteFile);
+    }
+    else
+    {
+        DetourAttach(&(PVOID&)TrueCreateFileA, DetouredCreateFileA);
+        DetourAttach(&(PVOID&)TrueCreateFileW, DetouredCreateFileW);
+        DetourAttach(&(PVOID&)TrueReadFile, DetouredReadFile);
+        DetourAttach(&(PVOID&)TrueReadFileEx, DetouredReadFileEx);
+        DetourAttach(&(PVOID&)TrueWriteFile, DetouredWriteFile);
+        DetourAttach(&(PVOID&)TrueWriteFileEx, DetouredWriteFileEx);
+    }
     DetourTransactionCommit();
 }
 
@@ -377,20 +645,32 @@ void WINAPI ProcessDetach(  HMODULE hModule,
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
 
-    DetourDetach(&(PVOID&)TrueNtCreateFile, DetouredNtCreateFile);
-    DetourDetach(&(PVOID&)TrueNtOpenFile, DetouredNtOpenFile);
-    DetourDetach(&(PVOID&)TrueNtReadFile, DetouredNtReadFile);
-    DetourDetach(&(PVOID&)TrueNtWriteFile, DetouredNtWriteFile);
+    if (HasNtdll())
+    {
+        DetourDetach(&(PVOID&)TrueNtCreateFile, DetouredNtCreateFile);
+        DetourDetach(&(PVOID&)TrueNtOpenFile, DetouredNtOpenFile);
+        DetourDetach(&(PVOID&)TrueNtReadFile, DetouredNtReadFile);
+        DetourDetach(&(PVOID&)TrueNtWriteFile, DetouredNtWriteFile);
 
-    DetourDetach(&(PVOID&)TrueZwCreateFile, DetouredZwCreateFile);
-    DetourDetach(&(PVOID&)TrueZwOpenFile, DetouredZwOpenFile);
-    DetourDetach(&(PVOID&)TrueZwReadFile, DetouredZwReadFile);
-    DetourDetach(&(PVOID&)TrueZwWriteFile, DetouredZwWriteFile);
-
+        DetourDetach(&(PVOID&)TrueZwCreateFile, DetouredZwCreateFile);
+        DetourDetach(&(PVOID&)TrueZwOpenFile, DetouredZwOpenFile);
+        DetourDetach(&(PVOID&)TrueZwReadFile, DetouredZwReadFile);
+        DetourDetach(&(PVOID&)TrueZwWriteFile, DetouredZwWriteFile);
+    }
+    else
+    {
+        DetourDetach(&(PVOID&)TrueCreateFileA, DetouredCreateFileA);
+        DetourDetach(&(PVOID&)TrueCreateFileW, DetouredCreateFileW);
+        DetourDetach(&(PVOID&)TrueReadFile, DetouredReadFile);
+        DetourDetach(&(PVOID&)TrueReadFileEx, DetouredReadFileEx);
+        DetourDetach(&(PVOID&)TrueWriteFile, DetouredWriteFile);
+        DetourDetach(&(PVOID&)TrueWriteFileEx, DetouredWriteFileEx);
+    }
     DetourTransactionCommit();
-    Log({ { "ProcessDetach", "Destroy" } });
 }
 
+
+#include <fstream>
 
 BOOL APIENTRY DllMain( HMODULE  hModule,
                        DWORD    ul_reason_for_call,
