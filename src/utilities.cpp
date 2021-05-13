@@ -116,21 +116,60 @@ std::string ToUtf8String(const wchar_t* unicode, const size_t unicode_size)
 }
 
 #include <filesystem>
+#include <winternl.h>
+
+using PWriteFile = BOOL(WINAPI*)(
+    HANDLE       hFile,
+    LPCVOID      lpBuffer,
+    DWORD        nNumberOfBytesToWrite,
+    LPDWORD      lpNumberOfBytesWritten,
+    LPOVERLAPPED lpOverlapped
+    );
+using PNativeWriteFile = NTSTATUS(*)(
+    HANDLE           FileHandle,
+    HANDLE           Event,
+    PIO_APC_ROUTINE  ApcRoutine,
+    PVOID            ApcContext,
+    PIO_STATUS_BLOCK IoStatusBlock,
+    PVOID            Buffer,
+    ULONG            Length,
+    PLARGE_INTEGER   ByteOffset,
+    PULONG           Key
+    );
+extern PWriteFile TrueWriteFile;
+extern PNativeWriteFile TrueNtWriteFile;
+extern bool hasNtdll;
+
+std::mutex mutex{};
 
 void InitLogger()
 {
     auto logDirectoryName = GetLogDirectoryName();
 
     std::filesystem::create_directories(logDirectoryName);
-    logger.open(logDirectoryName + GetShortProgramName() + ".txt"s, std::ios_base::app);
+    logger = CreateFileA((logDirectoryName + GetShortProgramName() + ".txt"s).c_str(),
+        FILE_APPEND_DATA,
+        FILE_SHARE_READ,
+        NULL,
+        OPEN_ALWAYS,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL);
 }
-
-std::mutex mutex{};
 
 void Log(const nlohmann::json& json)
 {
-    const std::lock_guard<std::mutex> lock(mutex);
-    logger << json << std::endl;
+    std::lock_guard<std::mutex> lock(mutex);
+    auto text = json.dump() + "\n";
+
+    if (hasNtdll)
+    {
+        IO_STATUS_BLOCK io;
+        (void)TrueNtWriteFile(logger, NULL, NULL, NULL, &io, (PVOID)text.c_str(), (ULONG)text.length(), 0, NULL);
+    }
+    else
+    {
+        (void)TrueWriteFile(logger, (PVOID)text.c_str(), (ULONG)text.length(), 0, NULL);
+    }
 }
 
 void LogException(const std::exception& e)
