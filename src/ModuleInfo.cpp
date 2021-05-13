@@ -16,6 +16,9 @@ namespace FileVersionGetter
     static std::wstring& GetLanguageCodePageString(const wchar_t* buffer)
     {
         static std::wstring languageCodePageString{};
+        if (!languageCodePageString.empty())
+            return languageCodePageString;
+        
         struct LanguageCodePage
         {
             WORD language, codePage;
@@ -32,20 +35,15 @@ namespace FileVersionGetter
         return (languageCodePageString = ss.str());
     }
 
-    static std::wstring languageCodePageString{};
-
     static std::wstring GetStringName(const wchar_t* buffer, const wchar_t* key)
     {
-        if (languageCodePageString.empty())
-        {
-            auto langCodePage = GetLanguageCodePageString(buffer);
-            if (langCodePage.empty())
-                langCodePage = L"041204b0"s;
-            languageCodePageString = langCodePage;
-        }
+        auto langCodePage = GetLanguageCodePageString(buffer);
+        if (langCodePage.empty())
+            langCodePage = L"041204b0"s;
+        
         std::wstringstream ss{};
         ss  << LR"(\StringFileInfo\)"
-            << languageCodePageString
+            << langCodePage
             << key;
         return ss.str();
     }
