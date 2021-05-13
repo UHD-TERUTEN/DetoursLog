@@ -32,15 +32,20 @@ namespace FileVersionGetter
         return (languageCodePageString = ss.str());
     }
 
+    static std::wstring languageCodePageString{};
+
     static std::wstring GetStringName(const wchar_t* buffer, const wchar_t* key)
     {
-        auto langCodePage = GetLanguageCodePageString(buffer);
-        if (langCodePage.empty())
-            langCodePage = L"041204b0"s;
-
+        if (languageCodePageString.empty())
+        {
+            auto langCodePage = GetLanguageCodePageString(buffer);
+            if (langCodePage.empty())
+                langCodePage = L"041204b0"s;
+            languageCodePageString = langCodePage;
+        }
         std::wstringstream ss{};
         ss  << LR"(\StringFileInfo\)"
-            << langCodePage
+            << languageCodePageString
             << key;
         return ss.str();
     }
