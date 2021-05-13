@@ -2,7 +2,6 @@
 #include <string>
 
 #include <Windows.h>
-#include <winternl.h>
 
 #include <nlohmann/json.hpp>
 
