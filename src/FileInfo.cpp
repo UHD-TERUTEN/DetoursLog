@@ -22,7 +22,7 @@ static std::string GetFormatDateTime(FILETIME fileTime)
     wchar_t formatDateTime[BUFSIZ]{};
     std::string dateTime;
 
-    auto size = SHFormatDateTime(&fileTime, &pdwFlags, formatDateTime, sizeof(formatDateTime));
+    auto size = SHFormatDateTimeW(&fileTime, &pdwFlags, formatDateTime, BUFSIZ);
     dateTime = ToUtf8String(formatDateTime, size);
     return RemoveLTRMark(dateTime);
 }
