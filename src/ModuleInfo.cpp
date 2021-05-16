@@ -29,7 +29,7 @@ namespace FileVersionGetter
         if (VerQueryValue(buffer, LR"(\VarFileInfo\Translation)", (LPVOID*)&translate, (PUINT)&bufsize))
         {
             ss.setf(std::ios::hex, std::ios::basefield);
-            ss << std::setw(4) << std::setfill(L'0') << translate[0].language
+            ss  << std::setw(4) << std::setfill(L'0') << translate[0].language
                 << std::setw(4) << std::setfill(L'0') << translate[0].codePage;
         }
         return (languageCodePageString = ss.str());
