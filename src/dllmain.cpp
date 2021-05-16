@@ -81,7 +81,7 @@ using PNativeOpenFile = NTSTATUS (*)(
     ULONG              ShareAccess,
     ULONG              OpenOptions
 );
-using PNativeReadFile = NTSTATUS(*)(
+using PNativeReadFile = NTSTATUS (*)(
     HANDLE           FileHandle,
     HANDLE           Event,
     PIO_APC_ROUTINE  ApcRoutine,
@@ -108,9 +108,9 @@ using PNativeWriteFile = NTSTATUS (*)(
 //
        PCreateFileA TrueCreateFileA = CreateFileA;
 static PCreateFileW TrueCreateFileW = CreateFileW;
-static PReadFile TrueReadFile       = ReadFile;
-static PReadFileEx TrueReadFileEx   = ReadFileEx;
-       PWriteFile TrueWriteFile     = WriteFile;
+static PReadFile    TrueReadFile    = ReadFile;
+static PReadFileEx  TrueReadFileEx  = ReadFileEx;
+       PWriteFile   TrueWriteFile   = WriteFile;
 static PWriteFileEx TrueWriteFileEx = WriteFileEx;
 
 // NT functions
@@ -214,6 +214,7 @@ HANDLE WINAPI DetouredCreateFileA(
     return ret;
 }
 
+__declspec(dllexport)
 HANDLE WINAPI DetouredCreateFileW(
     LPCWSTR               lpFileName,
     DWORD                 dwDesiredAccess,
@@ -244,6 +245,7 @@ HANDLE WINAPI DetouredCreateFileW(
     return ret;
 }
 
+__declspec(dllexport)
 BOOL WINAPI DetouredReadFile(
     HANDLE       hFile,
     LPVOID       lpBuffer,
@@ -269,6 +271,7 @@ BOOL WINAPI DetouredReadFile(
     return ret;
 }
 
+__declspec(dllexport)
 BOOL WINAPI DetouredReadFileEx(
     HANDLE                          hFile,
     LPVOID                          lpBuffer,
@@ -294,6 +297,7 @@ BOOL WINAPI DetouredReadFileEx(
     return ret;
 }
 
+__declspec(dllexport)
 BOOL WINAPI DetouredWriteFile(
     HANDLE       hFile,
     LPCVOID      lpBuffer,
@@ -319,6 +323,7 @@ BOOL WINAPI DetouredWriteFile(
     return ret;
 }
 
+__declspec(dllexport)
 BOOL WINAPI DetouredWriteFileEx(
     HANDLE                          hFile,
     LPCVOID                         lpBuffer,
@@ -671,8 +676,6 @@ void WINAPI ProcessDetach(  HMODULE hModule,
     DetourTransactionCommit();
 }
 
-
-#include <fstream>
 
 BOOL APIENTRY DllMain( HMODULE  hModule,
                        DWORD    ul_reason_for_call,
