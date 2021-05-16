@@ -105,26 +105,27 @@ using PNativeWriteFile = NTSTATUS (*)(
 );
 
 // Windows APIs
+//
        PCreateFileA TrueCreateFileA = CreateFileA;
 static PCreateFileW TrueCreateFileW = CreateFileW;
-static PReadFile TrueReadFile = ReadFile;
-static PReadFileEx TrueReadFileEx = ReadFileEx;
-       PWriteFile TrueWriteFile = WriteFile;
+static PReadFile TrueReadFile       = ReadFile;
+static PReadFileEx TrueReadFileEx   = ReadFileEx;
+       PWriteFile TrueWriteFile     = WriteFile;
 static PWriteFileEx TrueWriteFileEx = WriteFileEx;
 
 // NT functions
 //
-static PNativeCreateFile TrueNtCreateFile = (PNativeCreateFile)DetourFindFunction("ntdll.dll", "NtCreateFile");
-static PNativeOpenFile TrueNtOpenFile = (PNativeOpenFile)DetourFindFunction("ntdll.dll", "NtOpenFile");
-static PNativeReadFile TrueNtReadFile = (PNativeReadFile)DetourFindFunction("ntdll.dll", "NtReadFile");
-       PNativeWriteFile TrueNtWriteFile = (PNativeWriteFile)DetourFindFunction("ntdll.dll", "NtWriteFile");
+static PNativeCreateFile TrueNtCreateFile   = (PNativeCreateFile)DetourFindFunction("ntdll.dll", "NtCreateFile");
+static PNativeOpenFile TrueNtOpenFile       = (PNativeOpenFile)DetourFindFunction("ntdll.dll", "NtOpenFile");
+static PNativeReadFile TrueNtReadFile       = (PNativeReadFile)DetourFindFunction("ntdll.dll", "NtReadFile");
+       PNativeWriteFile TrueNtWriteFile     = (PNativeWriteFile)DetourFindFunction("ntdll.dll", "NtWriteFile");
 
 // ZW functions
 //
-static PNativeCreateFile TrueZwCreateFile = (PNativeCreateFile)DetourFindFunction("ntdll.dll", "ZwCreateFile");
-static PNativeOpenFile TrueZwOpenFile = (PNativeOpenFile)DetourFindFunction("ntdll.dll", "ZwOpenFile");
-static PNativeReadFile TrueZwReadFile = (PNativeReadFile)DetourFindFunction("ntdll.dll", "ZwReadFile");
-static PNativeWriteFile TrueZwWriteFile = (PNativeWriteFile)DetourFindFunction("ntdll.dll", "ZwWriteFile");
+static PNativeCreateFile TrueZwCreateFile   = (PNativeCreateFile)DetourFindFunction("ntdll.dll", "ZwCreateFile");
+static PNativeOpenFile TrueZwOpenFile       = (PNativeOpenFile)DetourFindFunction("ntdll.dll", "ZwOpenFile");
+static PNativeReadFile TrueZwReadFile       = (PNativeReadFile)DetourFindFunction("ntdll.dll", "ZwReadFile");
+static PNativeWriteFile TrueZwWriteFile     = (PNativeWriteFile)DetourFindFunction("ntdll.dll", "ZwWriteFile");
 
 HANDLE logger{};
 
@@ -182,6 +183,7 @@ static void WriteLog(std::string fileName, const char* functionName, NTSTATUS re
 }
 
 // Windows APIs
+//
 __declspec(dllexport)
 HANDLE WINAPI DetouredCreateFileA(
     LPCSTR                lpFileName,
@@ -614,7 +616,7 @@ void WINAPI ProcessAttach(  HMODULE hModule,
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
 
-    if (HasNtdll())
+    if (hasNtdll)
     {
         DetourAttach(&(PVOID&)TrueNtCreateFile, DetouredNtCreateFile);
         DetourAttach(&(PVOID&)TrueNtOpenFile, DetouredNtOpenFile);
@@ -645,7 +647,7 @@ void WINAPI ProcessDetach(  HMODULE hModule,
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
 
-    if (HasNtdll())
+    if (hasNtdll)
     {
         DetourDetach(&(PVOID&)TrueNtCreateFile, DetouredNtCreateFile);
         DetourDetach(&(PVOID&)TrueNtOpenFile, DetouredNtOpenFile);
