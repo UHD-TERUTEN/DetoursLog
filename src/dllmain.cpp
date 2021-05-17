@@ -81,7 +81,7 @@ using PNativeOpenFile = NTSTATUS (*)(
     ULONG              ShareAccess,
     ULONG              OpenOptions
 );
-using PNativeReadFile = NTSTATUS(*)(
+using PNativeReadFile = NTSTATUS (*)(
     HANDLE           FileHandle,
     HANDLE           Event,
     PIO_APC_ROUTINE  ApcRoutine,
@@ -105,26 +105,27 @@ using PNativeWriteFile = NTSTATUS (*)(
 );
 
 // Windows APIs
+//
        PCreateFileA TrueCreateFileA = CreateFileA;
 static PCreateFileW TrueCreateFileW = CreateFileW;
-static PReadFile TrueReadFile = ReadFile;
-static PReadFileEx TrueReadFileEx = ReadFileEx;
-       PWriteFile TrueWriteFile = WriteFile;
+static PReadFile    TrueReadFile    = ReadFile;
+static PReadFileEx  TrueReadFileEx  = ReadFileEx;
+       PWriteFile   TrueWriteFile   = WriteFile;
 static PWriteFileEx TrueWriteFileEx = WriteFileEx;
 
 // NT functions
 //
-static PNativeCreateFile TrueNtCreateFile = (PNativeCreateFile)DetourFindFunction("ntdll.dll", "NtCreateFile");
-static PNativeOpenFile TrueNtOpenFile = (PNativeOpenFile)DetourFindFunction("ntdll.dll", "NtOpenFile");
-static PNativeReadFile TrueNtReadFile = (PNativeReadFile)DetourFindFunction("ntdll.dll", "NtReadFile");
-       PNativeWriteFile TrueNtWriteFile = (PNativeWriteFile)DetourFindFunction("ntdll.dll", "NtWriteFile");
+static PNativeCreateFile TrueNtCreateFile   = (PNativeCreateFile)DetourFindFunction("ntdll.dll", "NtCreateFile");
+static PNativeOpenFile TrueNtOpenFile       = (PNativeOpenFile)DetourFindFunction("ntdll.dll", "NtOpenFile");
+static PNativeReadFile TrueNtReadFile       = (PNativeReadFile)DetourFindFunction("ntdll.dll", "NtReadFile");
+       PNativeWriteFile TrueNtWriteFile     = (PNativeWriteFile)DetourFindFunction("ntdll.dll", "NtWriteFile");
 
 // ZW functions
 //
-static PNativeCreateFile TrueZwCreateFile = (PNativeCreateFile)DetourFindFunction("ntdll.dll", "ZwCreateFile");
-static PNativeOpenFile TrueZwOpenFile = (PNativeOpenFile)DetourFindFunction("ntdll.dll", "ZwOpenFile");
-static PNativeReadFile TrueZwReadFile = (PNativeReadFile)DetourFindFunction("ntdll.dll", "ZwReadFile");
-static PNativeWriteFile TrueZwWriteFile = (PNativeWriteFile)DetourFindFunction("ntdll.dll", "ZwWriteFile");
+static PNativeCreateFile TrueZwCreateFile   = (PNativeCreateFile)DetourFindFunction("ntdll.dll", "ZwCreateFile");
+static PNativeOpenFile TrueZwOpenFile       = (PNativeOpenFile)DetourFindFunction("ntdll.dll", "ZwOpenFile");
+static PNativeReadFile TrueZwReadFile       = (PNativeReadFile)DetourFindFunction("ntdll.dll", "ZwReadFile");
+static PNativeWriteFile TrueZwWriteFile     = (PNativeWriteFile)DetourFindFunction("ntdll.dll", "ZwWriteFile");
 
 HANDLE logger{};
 
@@ -182,6 +183,7 @@ static void WriteLog(std::string fileName, const char* functionName, NTSTATUS re
 }
 
 // Windows APIs
+//
 __declspec(dllexport)
 HANDLE WINAPI DetouredCreateFileA(
     LPCSTR                lpFileName,
@@ -212,6 +214,7 @@ HANDLE WINAPI DetouredCreateFileA(
     return ret;
 }
 
+__declspec(dllexport)
 HANDLE WINAPI DetouredCreateFileW(
     LPCWSTR               lpFileName,
     DWORD                 dwDesiredAccess,
@@ -242,6 +245,7 @@ HANDLE WINAPI DetouredCreateFileW(
     return ret;
 }
 
+__declspec(dllexport)
 BOOL WINAPI DetouredReadFile(
     HANDLE       hFile,
     LPVOID       lpBuffer,
@@ -267,6 +271,7 @@ BOOL WINAPI DetouredReadFile(
     return ret;
 }
 
+__declspec(dllexport)
 BOOL WINAPI DetouredReadFileEx(
     HANDLE                          hFile,
     LPVOID                          lpBuffer,
@@ -292,6 +297,7 @@ BOOL WINAPI DetouredReadFileEx(
     return ret;
 }
 
+__declspec(dllexport)
 BOOL WINAPI DetouredWriteFile(
     HANDLE       hFile,
     LPCVOID      lpBuffer,
@@ -317,6 +323,7 @@ BOOL WINAPI DetouredWriteFile(
     return ret;
 }
 
+__declspec(dllexport)
 BOOL WINAPI DetouredWriteFileEx(
     HANDLE                          hFile,
     LPCVOID                         lpBuffer,
@@ -614,7 +621,7 @@ void WINAPI ProcessAttach(  HMODULE hModule,
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
 
-    if (HasNtdll())
+    if (hasNtdll)
     {
         DetourAttach(&(PVOID&)TrueNtCreateFile, DetouredNtCreateFile);
         DetourAttach(&(PVOID&)TrueNtOpenFile, DetouredNtOpenFile);
@@ -645,7 +652,7 @@ void WINAPI ProcessDetach(  HMODULE hModule,
     DetourTransactionBegin();
     DetourUpdateThread(GetCurrentThread());
 
-    if (HasNtdll())
+    if (hasNtdll)
     {
         DetourDetach(&(PVOID&)TrueNtCreateFile, DetouredNtCreateFile);
         DetourDetach(&(PVOID&)TrueNtOpenFile, DetouredNtOpenFile);
@@ -669,8 +676,6 @@ void WINAPI ProcessDetach(  HMODULE hModule,
     DetourTransactionCommit();
 }
 
-
-#include <fstream>
 
 BOOL APIENTRY DllMain( HMODULE  hModule,
                        DWORD    ul_reason_for_call,
