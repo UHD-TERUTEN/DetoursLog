@@ -16,17 +16,21 @@ static std::string GetFileExtension(const std::string& s)
     return "";
 }
 
-static char* GetCurrentProgramName()
+wchar_t* GetCurrentProgramName()
 {
-    static char programName[MAX_PATH]{};
-    if (!*programName)
-        GetModuleFileNameA(NULL, programName, MAX_PATH);
-    return programName;
+    static wchar_t buffer[MAX_PATH]{};
+    if (std::wcslen(buffer) == 0)
+    {
+        std::memset(buffer, 0, MAX_PATH);
+        GetModuleFileNameW(NULL, buffer, MAX_PATH);
+    }
+    return buffer;
 }
 
 static std::string GetShortProgramName()
 {
-    std::string programName = GetCurrentProgramName();
+    auto wProgramName = GetCurrentProgramName();
+    std::string programName = ToUtf8String(wProgramName, std::wcslen(wProgramName));
     auto pos = programName.rfind('\\');
     if (pos == std::string::npos)
         return "";
@@ -147,13 +151,16 @@ void InitLogger()
     auto logDirectoryName = GetLogDirectoryName();
 
     std::filesystem::create_directories(logDirectoryName);
-    logger = CreateFileA((logDirectoryName + GetShortProgramName() + ".txt"s).c_str(),
+    logger = CreateFileA
+    (
+        (logDirectoryName + GetShortProgramName() + ".txt"s).c_str(),
         FILE_APPEND_DATA,
         FILE_SHARE_READ,
         NULL,
         OPEN_ALWAYS,
         FILE_ATTRIBUTE_NORMAL,
-        NULL);
+        NULL
+    );
 }
 
 void Log(const nlohmann::json& json)

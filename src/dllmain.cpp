@@ -9,7 +9,8 @@ using namespace LogData;
 #include "Logger.h"
 
 #include <string>
-#include <sstream>
+#include <chrono>
+using namespace std::chrono;
 
 #include <detours.h>
 #include <winternl.h>
@@ -133,27 +134,95 @@ static std::string prevFunction{};
 static std::string prevFileName{};
 static HANDLE prevFileHandle = NULL;
 
+
+static nlohmann::json GetProcessInfo()
+{
+    static nlohmann::json json({});
+    if (json.empty())
+    {
+        try
+        {
+            auto fileName = GetCurrentProgramName();
+
+            auto hFile = TrueCreateFileW(fileName, 0, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+            if (hFile != INVALID_HANDLE_VALUE)
+            {
+                auto fileInfo = MakeFileInfo(hFile);
+                json["fileInfo"] = GetJson(fileInfo);
+
+                if (IsExecutable(fileInfo))
+                {
+                    auto moduleInfo = MakeModuleInfo(fileInfo.fileName);
+                    json["moduleInfo"] = GetJson(moduleInfo);
+                }
+                CloseHandle(hFile);
+            }
+        }
+        catch (...)
+        {
+            throw;
+        }
+    }
+    return json;
+}
+
+static bool IsWorkingTime(tm* currentTime)
+{
+    return (1 <= currentTime->tm_hour) && (currentTime->tm_hour < 9);
+}
+
+static nlohmann::json MakeEnvironmentInfo()
+{
+    nlohmann::json json({});
+    try
+    {
+        auto t = system_clock::to_time_t(system_clock::now());
+        tm currentTime{};
+        if (gmtime_s(&currentTime, &t) == 0)
+        {
+            json["timeInfo"] =
+            {
+                { "isWorkingTime", IsWorkingTime(&currentTime) }
+            };
+        }
+    }
+    catch (...)
+    {
+        throw;
+    }
+    return json;
+}
+
 static void WriteLog(HANDLE FileHandle, const char* functionName, int ret)
 {
     try
     {
-        //nlohmann::json json({ {"ProgramName", GetCurrentProgramName()} });
-        nlohmann::json json({});
-        {
-            auto fileAccessInfo = MakeFileAccessInfo(functionName, ret);
-            json["fileAccessInfo"] = GetJson(fileAccessInfo);
-        }
+        nlohmann::json subject{}, object({}), operation({}), environment{};
+
+        subject = GetProcessInfo();
         {
             auto fileInfo = MakeFileInfo(FileHandle);
-            json["fileInfo"] = GetJson(fileInfo);
+            object["fileInfo"] = GetJson(fileInfo);
 
             if (IsExecutable(fileInfo))
             {
                 auto moduleInfo = MakeModuleInfo(fileInfo.fileName);
-                json["moduleInfo"] = GetJson(moduleInfo);
+                object["moduleInfo"] = GetJson(moduleInfo);
             }
         }
-        Log(json);
+        {
+            auto fileAccessInfo = MakeFileAccessInfo(functionName, ret);
+            operation["fileAccessInfo"] = GetJson(fileAccessInfo);
+        }
+        environment = MakeEnvironmentInfo();
+
+        Log
+        ({
+            {"subject",     subject},
+            {"object",      object},
+            {"operation",   operation},
+            {"environment", environment}
+        });
     }
     catch (std::exception& e)
     {
@@ -165,16 +234,26 @@ static void WriteLog(std::string fileName, const char* functionName, NTSTATUS re
 {
     try
     {
-        nlohmann::json json({});
-        {
-            auto fileAccessInfo = MakeFileAccessInfo(functionName, ret);
-            json["fileAccessInfo"] = GetJson(fileAccessInfo);
-        }
+        nlohmann::json subject{}, object({}), operation({}), environment{};
+
+        subject = GetProcessInfo();
         {
             auto fileInfo = MakeFileInfo(fileName);
-            json["fileInfo"] = GetJson(fileInfo);
+            object["fileInfo"] = GetJson(fileInfo);
         }
-        Log(json);
+        {
+            auto fileAccessInfo = MakeFileAccessInfo(functionName, ret);
+            operation["fileAccessInfo"] = GetJson(fileAccessInfo);
+        }
+        environment = MakeEnvironmentInfo();
+
+        Log
+        ({
+            {"subject",     subject},
+            {"object",      object},
+            {"operation",   operation},
+            {"environment", environment}
+        });
     }
     catch (std::exception& e)
     {
@@ -210,7 +289,6 @@ HANDLE WINAPI DetouredCreateFileA(
         prevFunction = __FUNCTION__;
         prevFileName = lpFileName;
     }
-    //WriteLog(lpFileName, __FUNCTION__, ret != NULL);
     return ret;
 }
 
@@ -241,7 +319,6 @@ HANDLE WINAPI DetouredCreateFileW(
         prevFunction = __FUNCTION__;
         prevFileName = fileName;
     }
-    //WriteLog(fileName, __FUNCTION__, ret != NULL);
     return ret;
 }
 
@@ -267,7 +344,6 @@ BOOL WINAPI DetouredReadFile(
         prevFunction = __FUNCTION__;
         prevFileHandle = hFile;
     }
-    //WriteLog(hFile, __FUNCTION__, ret);
     return ret;
 }
 
@@ -293,7 +369,6 @@ BOOL WINAPI DetouredReadFileEx(
         prevFunction = __FUNCTION__;
         prevFileHandle = hFile;
     }
-    //WriteLog(hFile, __FUNCTION__, ret);
     return ret;
 }
 
@@ -319,7 +394,6 @@ BOOL WINAPI DetouredWriteFile(
         prevFunction = __FUNCTION__;
         prevFileHandle = hFile;
     }
-    //WriteLog(hFile, __FUNCTION__, ret);
     return ret;
 }
 
@@ -345,7 +419,6 @@ BOOL WINAPI DetouredWriteFileEx(
         prevFunction = __FUNCTION__;
         prevFileHandle = hFile;
     }
-    //WriteLog(hFile, __FUNCTION__, ret);
     return ret;
 }
 
@@ -613,6 +686,14 @@ void WINAPI ProcessAttach(  HMODULE hModule,
                             LPVOID  lpReserved)
 {
     InitLogger();
+    try
+    {
+        GetProcessInfo();   // Caching result
+    }
+    catch (std::exception& e)
+    {
+        LogException(e);
+    }
 
     DetourRestoreAfterWith();
 
