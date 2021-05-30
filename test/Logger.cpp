@@ -15,8 +15,8 @@ TEST(LoggerTest, LogTest)
   auto filename = loggerRoot + R"(\Logs\test.exe.txt)";
 
   std::ifstream temp(filename);
-  char buffer[14]{};
-  temp.read(buffer, 14);
+  char buffer[15] = { 0 };
+  temp.read(buffer, 15);
 
   EXPECT_STREQ("{\"foo\":\"bar\"}\n", buffer);
 

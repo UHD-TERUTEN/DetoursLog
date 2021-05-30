@@ -10,7 +10,7 @@ using namespace std::filesystem;
 
 TEST(FileInfoTest, MakeFileInfoOfThisFile)
 {
-    auto file = CreateFileA(R"(..\..\test\FileInfo.cpp)",
+    auto file = CreateFileA(R"(..\..\FileInfo.cpp)",
         GENERIC_READ,
         FILE_SHARE_READ,
         NULL,
@@ -21,34 +21,10 @@ TEST(FileInfoTest, MakeFileInfoOfThisFile)
     ASSERT_NE(file, INVALID_HANDLE_VALUE);
 
     auto fileInfo = MakeFileInfo(file);
-    std::string creationTime = R"(2021‎-05-05 ‏‎오후 11:11)";
+    uint64_t creationTime = 132646974896520752ULL;
 
-    EXPECT_STREQ(fileInfo.fileName.c_str(), absolute(R"(..\..\test\FileInfo.cpp)").string().c_str());
-    EXPECT_EQ(fileInfo.fileSize, 1500);
-    EXPECT_STREQ(fileInfo.creationTime.c_str(), RemoveLTRMark(creationTime).c_str());
+    EXPECT_STREQ(fileInfo.fileName.c_str(), absolute(R"(..\..\FileInfo.cpp)").string().c_str());
+    EXPECT_EQ(fileInfo.fileSize, 812);
+    EXPECT_EQ(fileInfo.creationTime, creationTime);
     EXPECT_FALSE(fileInfo.isHidden);
-}
-
-TEST(FileInfoTest, GetFormatDateTimeOfThisFile)
-{
-    auto file = CreateFileA(R"(..\..\test\FileInfo.cpp)",
-        GENERIC_READ,
-        FILE_SHARE_READ,
-        NULL,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL,
-        NULL);
-
-    ASSERT_NE(file, INVALID_HANDLE_VALUE);
-
-    FILETIME creationTime{};
-
-    auto ret = GetFileTime(file, &creationTime, NULL, NULL);
-
-    ASSERT_TRUE(ret);
-
-    auto formatDateTime = GetFormatDateTime(creationTime);
-    std::string comparer = R"(2021‎-05-05 ‏‎오후 11:11)";
-
-    EXPECT_STREQ(formatDateTime.c_str(), RemoveLTRMark(comparer).c_str());
 }

@@ -65,7 +65,6 @@ TEST(UtilitiesTest, LogToTempFile)
   LogException(std::exception("test"));
   
   auto filename = GetLogDirectoryName() + GetShortProgramName() + ".txt"s;
-  EXPECT_STREQ(filename.c_str(), R"(C:\Users\lhs14\AppData\Local\LogGatherer\Logs\test.exe.txt)");
   std::ifstream log(filename);
   std::string text{};
   
@@ -100,9 +99,12 @@ TEST(UtilitiesTest, ExtractFileExtension)
 
 TEST(UtilitiesTest, ValidProgramNames)
 {
-  std::string programName = absolute(R"(.\test.exe)").string();
+  std::string currentProgramName = absolute(R"(.\test.exe)").string();
   std::string shorten = R"(\test.exe)";
 
-  EXPECT_STREQ(programName.c_str(), GetCurrentProgramName());
+  auto wProgramName = GetCurrentProgramName();
+  std::string programName = ToUtf8String(wProgramName, std::wcslen(wProgramName));
+
+  EXPECT_STREQ(currentProgramName.c_str(), programName.c_str());
   EXPECT_STREQ(shorten.c_str(), GetShortProgramName().c_str());
 }
