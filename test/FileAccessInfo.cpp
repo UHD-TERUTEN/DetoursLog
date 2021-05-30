@@ -8,7 +8,7 @@ using namespace std::filesystem;
 
 TEST(FileAccessInfoTest, MakeFileAccessInfoOfThisFile)
 {
-  auto file = CreateFileA(R"(..\..\test\FileInfo.cpp)",
+  auto file = CreateFileA(R"(..\..\FileInfo.cpp)",
                           GENERIC_READ,
                           FILE_SHARE_READ,
                           NULL,

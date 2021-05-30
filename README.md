@@ -2,7 +2,7 @@
 detours 라이브러리를 사용한 응용프로그램 로깅 DLL
 
 ## GoogleTest
-![DetoursLog_210406](https://user-images.githubusercontent.com/31408641/113679722-0b91e300-96fb-11eb-9cb9-58750349c88d.png)
+![DetoursLog_210530](https://user-images.githubusercontent.com/31408641/120103265-c84b7200-c189-11eb-9811-78c0fb99e21c.png)
 
 ## 사용법 (Detours sample [Setdll](https://github.com/microsoft/Detours/wiki/SampleSetdll) 사용 시)
 1. 'x64 Native Tools Command Prompt for VS 2019'를 관리자 권한으로 실행
